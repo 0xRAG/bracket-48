@@ -38,11 +38,11 @@ The checked-in app defaults to Supabase mode in `App/WorldCupBracket/Support/Wor
 For the native app:
 
 - Apple Developer Team ID.
-- iOS bundle ID with Sign in with Apple enabled. The current bundle ID is `com.rag.WorldCupBracket`.
+- iOS bundle ID with Sign in with Apple enabled. The current bundle ID is `app.bracket48.Bracket48`.
 
 For Supabase's Apple provider configuration:
 
-- Services ID / client ID, commonly a web-style identifier such as `com.ryan.WorldCupBracket.web`.
+- Services ID / client ID, commonly a web-style identifier such as `app.bracket48.auth`.
 - Website domain set to `<project-ref>.supabase.co`.
 - Return URL set to `https://<project-ref>.supabase.co/auth/v1/callback`.
 - Apple signing Key ID.

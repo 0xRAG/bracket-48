@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEVICE_ID="${1:-159CAA8C-E3C3-4AA8-ACF2-C497B28C0274}"
-BUNDLE_ID="com.rag.WorldCupBracket"
+BUNDLE_ID="app.bracket48.Bracket48"
 DERIVED_DATA="$ROOT_DIR/Build/ScreenshotDerivedData"
 APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/WorldCupBracket.app"
 OUTPUT_DIR="$ROOT_DIR/AppStore/Screenshots"

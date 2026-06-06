@@ -1,6 +1,6 @@
 name: WorldCupBracket
 options:
-  bundleIdPrefix: com.rag
+  bundleIdPrefix: app.bracket48
   deploymentTarget:
     iOS: "17.0"
 packages:
@@ -24,7 +24,7 @@ targets:
         product: Supabase
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.rag.WorldCupBracket
+        PRODUCT_BUNDLE_IDENTIFIER: app.bracket48.Bracket48
         DEVELOPMENT_TEAM: 497S7CC998
         INFOPLIST_FILE: App/WorldCupBracket/Support/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/WorldCupBracket/Support/WorldCupBracket.entitlements
