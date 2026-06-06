@@ -18,6 +18,7 @@ protocol PoolServicing: Sendable {
 protocol BracketServicing: Sendable {
     func listBrackets() async throws -> [BackendBracketSummary]
     func submitGroupStageBracket(_ submission: GroupStageBracketSubmission) async throws -> BackendBracketSummary
+    func updateGroupStageBracket(id: UUID, _ submission: GroupStageBracketSubmission) async throws -> BackendBracketSummary
     func submitKnockoutBracket(_ submission: KnockoutBracketSubmission) async throws -> BackendBracketSummary
     func deleteBracket(id: UUID) async throws
     func enterBracket(bracketID: UUID, poolID: UUID, phase: BracketPhase) async throws
@@ -85,6 +86,10 @@ private struct UnconfiguredBracketService: BracketServicing {
     }
 
     func submitGroupStageBracket(_ submission: GroupStageBracketSubmission) async throws -> BackendBracketSummary {
+        throw BackendServiceError.notConfigured
+    }
+
+    func updateGroupStageBracket(id: UUID, _ submission: GroupStageBracketSubmission) async throws -> BackendBracketSummary {
         throw BackendServiceError.notConfigured
     }
 

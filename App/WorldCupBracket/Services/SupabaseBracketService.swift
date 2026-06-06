@@ -69,6 +69,48 @@ actor SupabaseBracketService: BracketServicing {
         )
     }
 
+    func updateGroupStageBracket(id: UUID, _ submission: GroupStageBracketSubmission) async throws -> BackendBracketSummary {
+        let userID = try authenticatedUserID()
+        let payload = GroupStageBracketPayload(
+            predictions: submission.predictions.map {
+                GroupStagePredictionPayload(
+                    groupID: $0.groupID,
+                    orderedTeamIDs: $0.orderedTeams.map(\.id),
+                    predictedThirdPlaceAdvances: $0.predictedThirdPlaceAdvances
+                )
+            }
+        )
+        let row = UpdateBracketRow(displayName: submission.displayName, picks: payload)
+
+        let saved: BracketRow = try await client
+            .from("brackets")
+            .update(row)
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userID.uuidString)
+            .eq("phase", value: DatabaseBracketPhase.groupStage.rawValue)
+            .select("id,user_id,phase,display_name,group_stage_bracket_id,picks,submitted_at")
+            .single()
+            .execute()
+            .value
+
+        return BackendBracketSummary(
+            id: saved.id,
+            phase: saved.phase.modelValue,
+            displayName: saved.displayName,
+            submittedAt: saved.submittedAt,
+            groupStageBracketID: saved.groupStageBracketID,
+            linkedPoolIDs: try await linkedPoolIDs(for: saved.id),
+            groupStagePredictions: saved.picks?.predictions?.map {
+                BackendGroupStagePrediction(
+                    groupID: $0.groupID,
+                    orderedTeamIDs: $0.orderedTeamIDs,
+                    predictedThirdPlaceAdvances: $0.predictedThirdPlaceAdvances
+                )
+            } ?? [],
+            knockoutPicks: []
+        )
+    }
+
     func submitKnockoutBracket(_ submission: KnockoutBracketSubmission) async throws -> BackendBracketSummary {
         let payload = KnockoutBracketPayload(
             picks: submission.picks.map {
@@ -193,6 +235,16 @@ private struct NewBracketRow<Picks: Encodable>: Encodable {
         case phase
         case displayName = "display_name"
         case groupStageBracketID = "group_stage_bracket_id"
+        case picks
+    }
+}
+
+private struct UpdateBracketRow<Picks: Encodable>: Encodable {
+    let displayName: String
+    let picks: Picks
+
+    enum CodingKeys: String, CodingKey {
+        case displayName = "display_name"
         case picks
     }
 }

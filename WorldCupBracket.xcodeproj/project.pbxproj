@@ -25,6 +25,7 @@
 		750EF379E014873F18A5555E /* InfoLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4102AAADA79AAE4EE5FEBF3A /* InfoLine.swift */; };
 		7B0836C866AFD26D9AD06137 /* WorldCupBracketApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28A99836B2FC2A0013A052DC /* WorldCupBracketApp.swift */; };
 		80AA121932DFCC311272D86F /* ScoringGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B411D272BBAC92EF1DF5F4F /* ScoringGuideView.swift */; };
+		8E6AC6F0279A50ACFCC72EA4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 763332053E2FF9CAFB5FBFEF /* PrivacyInfo.xcprivacy */; };
 		93E9EF65E92A69843145273E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FCA4117673FEDA2B01D6372 /* Assets.xcassets */; };
 		942FB661F91E6EF079223770 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587C8D11F10981718469E0C9 /* HomeView.swift */; };
 		A18E8DCE960CE4BDC4DD491D /* SupabaseDatabaseCoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25210890AF1941CAAE05BA86 /* SupabaseDatabaseCoding.swift */; };
@@ -62,6 +63,7 @@
 		6FDA9AC27755BBAF54A04DF9 /* WorldCupBracket.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WorldCupBracket.local.xcconfig; sourceTree = "<group>"; };
 		70537C0A5F33AEC017FB4320 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		71698A83F368F74EB206E509 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
+		763332053E2FF9CAFB5FBFEF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		768EB5B3F699405516B79534 /* KnockoutBracketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnockoutBracketView.swift; sourceTree = "<group>"; };
 		7C1E56127A086B705186CEED /* AppBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackground.swift; sourceTree = "<group>"; };
 		89AE4875144A4E29BAB0E1C8 /* WorldCupBracket.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorldCupBracket.entitlements; sourceTree = "<group>"; };
@@ -96,6 +98,7 @@
 				9B6A9ED774779A7FCB553870 /* DraftStateStore.swift */,
 				5AD9037284C8D6D23C6A2557 /* Info.plist */,
 				4102AAADA79AAE4EE5FEBF3A /* InfoLine.swift */,
+				763332053E2FF9CAFB5FBFEF /* PrivacyInfo.xcprivacy */,
 				89AE4875144A4E29BAB0E1C8 /* WorldCupBracket.entitlements */,
 				F503A92182E43D586DAF9598 /* WorldCupBracket.example.xcconfig */,
 				6FDA9AC27755BBAF54A04DF9 /* WorldCupBracket.local.xcconfig */,
@@ -241,6 +244,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				93E9EF65E92A69843145273E /* Assets.xcassets in Resources */,
+				8E6AC6F0279A50ACFCC72EA4 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

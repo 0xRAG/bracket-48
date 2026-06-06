@@ -64,6 +64,10 @@ final class AppModel {
         {
             restore(restoredState)
         }
+
+        #if DEBUG
+        applyScreenshotFixtureIfRequested()
+        #endif
     }
 
     var localState: LocalDraftState {
@@ -112,7 +116,7 @@ final class AppModel {
     }
 
     var canSubmitBracket: Bool {
-        groupStageValidation.isComplete && hasRequiredThirdPlaceAdvancers && !isBracketLocked && !isBackendBusy
+        groupStageValidation.isComplete && hasRequiredThirdPlaceAdvancers && canEditGroupStageBracket && !isBackendBusy
     }
 
     var canStartGroupCreation: Bool {
@@ -147,6 +151,18 @@ final class AppModel {
 
     var isBracketLocked: Bool {
         submittedEntry != nil
+    }
+
+    var isEditingSavedGroupStageBracket: Bool {
+        submittedEntry?.backendID != nil
+    }
+
+    var canEditGroupStageBracket: Bool {
+        guard let groupStageBracketID = submittedEntry?.backendID else {
+            return true
+        }
+
+        return !knockoutBrackets.contains { $0.groupStageBracketID == groupStageBracketID }
     }
 
     var isKnockoutBracketLocked: Bool {
@@ -289,7 +305,7 @@ final class AppModel {
         switch bracket.phase {
         case .groupStage:
             applyGroupStageBracket(bracket)
-            step = .submitted
+            step = .bracket
         case .knockout:
             if submittedEntry == nil, let latestGroupStage = groupStageBrackets.first {
                 applyGroupStageBracket(latestGroupStage)
@@ -303,12 +319,6 @@ final class AppModel {
 
     func showBracket() {
         selectedTab = .brackets
-        guard !isBracketLocked else {
-            step = .submitted
-            persist()
-            return
-        }
-
         step = .bracket
         persist()
     }
@@ -330,7 +340,7 @@ final class AppModel {
     }
 
     func moveTeam(groupID: String, from source: IndexSet, to destination: Int) {
-        guard !isBracketLocked else {
+        guard canEditGroupStageBracket else {
             return
         }
 
@@ -343,7 +353,7 @@ final class AppModel {
     }
 
     func setThirdPlaceAdvances(groupID: String, advances: Bool) {
-        guard !isBracketLocked else {
+        guard canEditGroupStageBracket else {
             return
         }
 
@@ -392,9 +402,13 @@ final class AppModel {
 
         let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         await runBackendOperation(successMessage: nil) {
-            let summary = try await services.brackets.submitGroupStageBracket(
-                GroupStageBracketSubmission(displayName: trimmedDisplayName, predictions: predictions)
-            )
+            let submission = GroupStageBracketSubmission(displayName: trimmedDisplayName, predictions: predictions)
+            let summary: BackendBracketSummary
+            if let groupStageBracketID = submittedEntry?.backendID {
+                summary = try await services.brackets.updateGroupStageBracket(id: groupStageBracketID, submission)
+            } else {
+                summary = try await services.brackets.submitGroupStageBracket(submission)
+            }
             submittedEntry = SubmittedEntry(
                 backendID: summary.id,
                 groupName: SubmittedEntry.standaloneGroupName,
@@ -830,6 +844,80 @@ final class AppModel {
 
         return String(code.prefix(8))
     }
+
+    #if DEBUG
+    private func applyScreenshotFixtureIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-WCBUseScreenshotFixtures") else {
+            return
+        }
+
+        displayName = "Ryan"
+        groupName = ""
+        selectedGroupID = "screenshot-group-1"
+        joinedGroups = [
+            JoinedGroup(id: "screenshot-group-1", name: "Saturday Crew", inviteCode: "BRKT48", isOwner: true),
+            JoinedGroup(id: "screenshot-group-2", name: "Office Picks", inviteCode: "OFFICE", isOwner: false)
+        ]
+        predictions = Self.defaultPredictions(groups: groups).map { prediction in
+            var updatedPrediction = prediction
+            if prediction.groupID == "A" {
+                updatedPrediction.orderedTeams = Array(prediction.orderedTeams.reversed())
+            }
+            return updatedPrediction
+        }
+        submittedEntry = SubmittedEntry(
+            backendID: UUID(uuidString: "11111111-1111-1111-1111-111111111111"),
+            groupName: SubmittedEntry.standaloneGroupName,
+            displayName: displayName,
+            predictions: predictions
+        )
+        knockoutPicks = []
+        submittedKnockoutEntry = nil
+        backendBrackets = [
+            BackendBracketSummary(
+                id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                phase: .groupStage,
+                displayName: displayName,
+                submittedAt: Date(timeIntervalSince1970: 1_780_876_800),
+                groupStageBracketID: nil,
+                linkedPoolIDs: [],
+                groupStagePredictions: predictions.map {
+                    BackendGroupStagePrediction(
+                        groupID: $0.groupID,
+                        orderedTeamIDs: $0.orderedTeams.map(\.id),
+                        predictedThirdPlaceAdvances: $0.predictedThirdPlaceAdvances
+                    )
+                },
+                knockoutPicks: []
+            )
+        ]
+
+        selectedTab = .home
+        step = .home
+
+        if let screenshotScreenIndex = ProcessInfo.processInfo.arguments.firstIndex(of: "-WCBScreenshotScreen"),
+           ProcessInfo.processInfo.arguments.indices.contains(screenshotScreenIndex + 1)
+        {
+            switch ProcessInfo.processInfo.arguments[screenshotScreenIndex + 1] {
+            case "brackets":
+                selectedTab = .brackets
+                step = .home
+            case "groups":
+                selectedTab = .groups
+                step = .home
+            case "profile":
+                selectedTab = .profile
+                step = .home
+            case "group-bracket":
+                selectedTab = .brackets
+                step = .bracket
+            default:
+                selectedTab = .home
+                step = .home
+            }
+        }
+    }
+    #endif
 }
 
 struct AppGroup: Identifiable, Hashable {

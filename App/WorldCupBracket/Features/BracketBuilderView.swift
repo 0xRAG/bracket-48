@@ -15,7 +15,7 @@ struct BracketBuilderView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Rank Each Group")
                         .font(.title2.bold())
-                    Text("Drag teams into your exact 1 through 4 order. Toggle whether the third-place team advances.")
+                    Text(appModel.canEditGroupStageBracket ? "Drag teams into your exact 1 through 4 order. Toggle whether the third-place team advances." : "This group-stage bracket is locked because its knockout stage has already been filled.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     InfoLine(title: "Lock Deadline", value: "Before group stage begins")
@@ -31,11 +31,17 @@ struct BracketBuilderView: View {
                 Section("Group \(prediction.groupID)") {
                     let limitReached = appModel.selectedThirdPlaceAdvancersCount >= appModel.maxThirdPlaceAdvancers
 
-                    ForEach(Array(prediction.orderedTeams.enumerated()), id: \.element.id) { index, team in
-                        TeamRankRow(rank: index + 1, team: team)
-                    }
-                    .onMove { source, destination in
-                        appModel.moveTeam(groupID: prediction.groupID, from: source, to: destination)
+                    if appModel.canEditGroupStageBracket {
+                        ForEach(Array(prediction.orderedTeams.enumerated()), id: \.element.id) { index, team in
+                            TeamRankRow(rank: index + 1, team: team)
+                        }
+                        .onMove { source, destination in
+                            appModel.moveTeam(groupID: prediction.groupID, from: source, to: destination)
+                        }
+                    } else {
+                        ForEach(Array(prediction.orderedTeams.enumerated()), id: \.element.id) { index, team in
+                            TeamRankRow(rank: index + 1, team: team)
+                        }
                     }
 
                     Toggle(
@@ -46,7 +52,7 @@ struct BracketBuilderView: View {
                         )
                     )
                     .accessibilityHint("Controls whether your predicted third-place team advances to the knockout stage.")
-                    .disabled(!prediction.predictedThirdPlaceAdvances && limitReached)
+                    .disabled(!appModel.canEditGroupStageBracket || (!prediction.predictedThirdPlaceAdvances && limitReached))
                 }
             }
 
@@ -68,7 +74,7 @@ struct BracketBuilderView: View {
                 }
             }
         }
-        .navigationTitle("Create Bracket")
+        .navigationTitle(appModel.isEditingSavedGroupStageBracket ? "Group Bracket" : "Create Bracket")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -83,22 +89,24 @@ struct BracketBuilderView: View {
         .scrollContentBackground(.hidden)
         .background(AppBackground())
         .safeAreaInset(edge: .bottom) {
-            Button {
-                Task {
-                    await appModel.submitGroupStageBracketRemotelyAndShowKnockout()
-                    if appModel.step == .knockout {
-                        onSubmitted?()
+            if appModel.canEditGroupStageBracket {
+                Button {
+                    Task {
+                        await appModel.submitGroupStageBracketRemotelyAndShowKnockout()
+                        if appModel.step == .knockout {
+                            onSubmitted?()
+                        }
                     }
+                } label: {
+                    Text(appModel.isBackendBusy ? "Saving Bracket" : (appModel.isEditingSavedGroupStageBracket ? "Save Changes" : "Continue to Knockout"))
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
-            } label: {
-                Text(appModel.isBackendBusy ? "Saving Bracket" : "Continue to Knockout")
-                    .frame(maxWidth: .infinity, alignment: .center)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(!appModel.canSubmitBracket)
+                .padding()
+                .background(.regularMaterial)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(!appModel.canSubmitBracket)
-            .padding()
-            .background(.regularMaterial)
         }
     }
 }
@@ -154,9 +162,6 @@ private struct TeamRankRow: View {
             }
 
             Spacer()
-
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(team.name), position \(rank)")

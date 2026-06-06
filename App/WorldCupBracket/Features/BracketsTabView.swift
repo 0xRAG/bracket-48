@@ -10,19 +10,19 @@ struct BracketsTabView: View {
             BracketsDashboardView(
                 createGroupAction: {
                     appModel.startNewGroupStageBracket()
-                    path.append(.groupBuilder)
+                    syncPathWithAppStep()
                 },
                 createKnockoutAction: {
                     appModel.startNewKnockoutBracket()
-                    path.append(.knockout)
+                    syncPathWithAppStep()
                 },
                 viewGroupAction: { bracket in
                     appModel.viewBracket(bracket)
-                    path.append(.groupSubmitted)
+                    syncPathWithAppStep()
                 },
                 viewKnockoutAction: { bracket in
                     appModel.viewBracket(bracket)
-                    path.append(.knockout)
+                    syncPathWithAppStep()
                 }
             )
             .navigationDestination(for: BracketsRoute.self) { route in
@@ -30,7 +30,7 @@ struct BracketsTabView: View {
                 case .groupBuilder:
                     BracketBuilderView(
                         onSubmitted: {
-                            path.append(.knockout)
+                            syncPathWithAppStep()
                         },
                         onScoringInfo: {
                             path.append(.scoringGuide)
@@ -48,10 +48,37 @@ struct BracketsTabView: View {
                 }
             }
         }
+        .onAppear {
+            syncPathWithAppStep()
+        }
         .onChange(of: appModel.selectedTab) { _, selectedTab in
-            if selectedTab == .brackets, appModel.step == .home {
-                path.removeAll()
+            if selectedTab == .brackets {
+                syncPathWithAppStep()
             }
+        }
+        .onChange(of: appModel.step) { _, _ in
+            syncPathWithAppStep()
+        }
+    }
+
+    private func syncPathWithAppStep() {
+        guard appModel.selectedTab == .brackets else {
+            return
+        }
+
+        switch appModel.step {
+        case .bracket:
+            if path != [.groupBuilder] {
+                path = [.groupBuilder]
+            }
+        case .knockout:
+            if path != [.knockout] {
+                path = [.knockout]
+            }
+        case .submitted:
+            path.removeAll()
+        default:
+            path.removeAll()
         }
     }
 }
