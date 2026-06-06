@@ -18,7 +18,7 @@ Bracket 48 is a friendly soccer tournament bracket app for private groups.
 
 Sign in with Apple, create a bracket, rank every group, pick third-place advancers, and continue into the knockout stage. Create private groups, share invite links, and compare picks with friends as the tournament unfolds.
 
-Bracket 48 is designed for entertainment only. It is independent and unofficial, and is not affiliated with or endorsed by FIFA, tournament organizers, teams, or federations. The app does not offer cash rewards, prizes, betting, or gambling.
+Bracket 48 is designed for entertainment only. It is independent and unofficial, and is not affiliated with or endorsed by tournament organizers, teams, or federations. The app does not offer cash rewards, prizes, betting, or gambling.
 
 Features:
 
@@ -42,19 +42,19 @@ Secondary: Entertainment
 
 ## Marketing URL
 
-https://0xrag.github.io/fifa-bracket/
+https://0xrag.github.io/bracket-48/
 
 ## Support URL
 
-https://0xrag.github.io/fifa-bracket/support/
+https://0xrag.github.io/bracket-48/support/
 
 ## Privacy Policy URL
 
-https://0xrag.github.io/fifa-bracket/privacy/
+https://0xrag.github.io/bracket-48/privacy/
 
 ## Review Notes
 
-Bracket 48 is an independent, unofficial soccer tournament bracket app for entertainment with friends. It is not affiliated with FIFA, tournament organizers, teams, or federations, and does not offer cash rewards, prizes, betting, gambling, sweepstakes, or paid contests.
+Bracket 48 is an independent, unofficial soccer tournament bracket app for entertainment with friends. It is not affiliated with tournament organizers, teams, or federations, and does not offer cash rewards, prizes, betting, gambling, sweepstakes, or paid contests.
 
 The app uses Sign in with Apple. Account deletion is available from Profile > Delete Account.
 

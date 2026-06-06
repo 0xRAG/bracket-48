@@ -4,7 +4,7 @@ Native iOS soccer tournament bracket pool app.
 
 Users sign in with Apple, join groups, submit group-stage predictions before the tournament, submit knockout brackets after the Round of 32 is known, and compare leaderboards with friends.
 
-Bracket 48 is an independent, unofficial app for entertainment with friends. It is not affiliated with or endorsed by FIFA, tournament organizers, teams, or federations, and it does not offer cash rewards, prizes, betting, or gambling.
+Bracket 48 is an independent, unofficial app for entertainment with friends. It is not affiliated with or endorsed by tournament organizers, teams, or federations, and it does not offer cash rewards, prizes, betting, or gambling.
 
 ## Current Docs
 

@@ -70,4 +70,4 @@ These answers reflect the current app implementation as of June 6, 2026. Revisit
 
 Use the Privacy Policy URL unless we add a dedicated choices page:
 
-https://0xrag.github.io/fifa-bracket/privacy/
+https://0xrag.github.io/bracket-48/privacy/

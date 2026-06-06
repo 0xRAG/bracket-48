@@ -62,7 +62,7 @@ Screen hierarchy:
 
 ## Visual Identity
 
-The product name is `Bracket 48`. The app should imply international soccer bracket energy without copying FIFA branding, official tournament branding, or implying affiliation.
+The product name is `Bracket 48`. The app should imply international soccer bracket energy without copying official tournament branding or implying affiliation.
 
 Use:
 
@@ -76,7 +76,7 @@ Use:
 
 Avoid:
 
-- FIFA marks, trophy replicas, or official tournament branding unless licensed
+- Official tournament marks, trophy replicas, or event branding unless licensed
 - Cash reward, prize, sportsbook, betting, gambling, or sweepstakes language
 - Heavy gradients as the main visual language
 - Overly dark sports-betting aesthetics
@@ -248,5 +248,5 @@ Every feature should answer:
 2. Is the current tournament state obvious?
 3. Can the user tell what is open, locked, submitted, correct, and eliminated?
 4. Does the screen work in light and dark mode?
-5. Does the design avoid looking like gambling or unofficial FIFA branding?
+5. Does the design avoid looking like gambling or official tournament branding?
 6. Does the experience still feel fun?

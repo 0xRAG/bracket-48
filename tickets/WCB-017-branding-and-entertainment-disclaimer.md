@@ -7,7 +7,7 @@ Phase: MVP
 
 ## Problem
 
-The app needed a production-ready identity that does not imply FIFA, official tournament, team, federation, betting, or prize affiliation.
+The app needed a production-ready identity that does not imply official tournament, team, federation, betting, or prize affiliation.
 
 ## User Value
 
