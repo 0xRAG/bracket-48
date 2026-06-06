@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "497S7CC998.app.bracket48.Bracket48",
+        "paths": [
+          "/join/*",
+          "/join/"
+        ]
+      }
+    ]
+  }
+}
