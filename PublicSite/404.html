@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bracket 48</title>
+  <script>
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    if (parts[0] === "join" && parts.length > 1) {
+      const code = parts[parts.length - 1].toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+      if (code) {
+        window.location.replace(`/join/?code=${encodeURIComponent(code)}`);
+      }
+    }
+  </script>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: Canvas;
+      color: CanvasText;
+    }
+    main {
+      width: min(680px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 72px 0;
+    }
+    a { color: #0a84ff; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Page Not Found</h1>
+    <p>The page you requested could not be found.</p>
+    <p><a href="/">Go to Bracket 48</a></p>
+  </main>
+</body>
+</html>
