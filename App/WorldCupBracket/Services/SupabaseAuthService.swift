@@ -24,22 +24,14 @@ actor SupabaseAuthService: AuthServicing {
             return nil
         }
 
-        let rows: [AppUserRow] = try await client
-            .from("app_users")
-            .select()
-            .eq("id", value: user.id.uuidString)
-            .limit(1)
-            .execute()
-            .value
-
-        if let row = rows.first {
-            return row.profile
+        if let profile = try await profile(userID: user.id) {
+            return profile
         }
 
         return BackendUserProfile(id: user.id, displayName: "Player")
     }
 
-    func signInWithApple(idToken: String, nonce: String, displayName: String) async throws -> BackendUserProfile {
+    func signInWithApple(idToken: String, nonce: String, displayName: String?) async throws -> BackendUserProfile {
         let session = try await client.auth.signInWithIdToken(
             credentials: OpenIDConnectCredentials(
                 provider: .apple,
@@ -48,14 +40,26 @@ actor SupabaseAuthService: AuthServicing {
             )
         )
 
-        let profile = AppUserRow(id: session.user.id, displayName: displayName.normalizedDisplayName)
+        let existingProfile = try await profile(userID: session.user.id)
+        let appleDisplayName = displayName?.normalizedAppleDisplayName
+        let providerDisplayName = session.user.providerDisplayName
+        let discoveredDisplayName = appleDisplayName ?? providerDisplayName
 
-        try await client
-            .from("app_users")
-            .upsert(profile)
-            .execute()
+        if let existingProfile {
+            guard existingProfile.displayName == "Player", let discoveredDisplayName else {
+                return existingProfile
+            }
 
-        return profile.profile
+            return try await saveProfile(AppUserRow(id: session.user.id, displayName: discoveredDisplayName))
+        }
+
+        guard let discoveredDisplayName else {
+            let profile = AppUserRow(id: session.user.id, displayName: "Player")
+            return try await saveProfile(profile)
+        }
+
+        let profile = AppUserRow(id: session.user.id, displayName: discoveredDisplayName)
+        return try await saveProfile(profile)
     }
 
     func updateDisplayName(_ displayName: String) async throws -> BackendUserProfile {
@@ -65,12 +69,7 @@ actor SupabaseAuthService: AuthServicing {
 
         let profile = AppUserRow(id: user.id, displayName: displayName.normalizedDisplayName)
 
-        try await client
-            .from("app_users")
-            .upsert(profile)
-            .execute()
-
-        return profile.profile
+        return try await saveProfile(profile)
     }
 
     func signOut() async throws {
@@ -83,6 +82,31 @@ actor SupabaseAuthService: AuthServicing {
             options: FunctionInvokeOptions(method: .delete)
         )
         try await client.auth.signOut()
+    }
+
+    private func profile(userID: UUID) async throws -> BackendUserProfile? {
+        let rows: [AppUserRow] = try await client
+            .from("app_users")
+            .select()
+            .eq("id", value: userID.uuidString)
+            .limit(1)
+            .execute()
+            .value
+
+        return rows.first?.profile
+    }
+
+    @discardableResult
+    private func saveProfile(_ profile: AppUserRow) async throws -> BackendUserProfile {
+        let savedProfile: AppUserRow = try await client
+            .from("app_users")
+            .upsert(profile)
+            .select()
+            .single()
+            .execute()
+            .value
+
+        return savedProfile.profile
     }
 }
 
@@ -104,5 +128,37 @@ private extension String {
     var normalizedDisplayName: String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Player" : trimmed
+    }
+
+    var normalizedAppleDisplayName: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension User {
+    var providerDisplayName: String? {
+        displayName(in: userMetadata)
+            ?? identities?.compactMap { identity in
+                identity.identityData.flatMap(displayName(in:))
+            }.first
+    }
+
+    private func displayName(in metadata: [String: AnyJSON]) -> String? {
+        let candidateKeys = ["given_name", "first_name", "name", "full_name"]
+
+        for key in candidateKeys {
+            guard let value = metadata[key]?.stringValue?.normalizedAppleDisplayName else {
+                continue
+            }
+
+            if key == "name" || key == "full_name" {
+                return value.components(separatedBy: .whitespacesAndNewlines).first { !$0.isEmpty } ?? value
+            }
+
+            return value
+        }
+
+        return nil
     }
 }

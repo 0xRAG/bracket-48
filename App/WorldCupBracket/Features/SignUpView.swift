@@ -86,7 +86,7 @@ struct SignUpView: View {
             let user = try await services.auth.signInWithApple(
                 idToken: idToken,
                 nonce: currentNonce,
-                displayName: preferredDisplayName(appleFirstName: firstName)
+                displayName: firstName
             )
             appModel.displayName = user.displayName
 
@@ -111,10 +111,6 @@ struct SignUpView: View {
         let firstName = credential.fullName?.givenName?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return (idToken, firstName?.isEmpty == false ? firstName : nil)
-    }
-
-    private func preferredDisplayName(appleFirstName: String?) -> String {
-        appleFirstName ?? "Player"
     }
 }
 
