@@ -1,0 +1,17 @@
+.DS_Store
+DerivedData/
+Build/
+.build/
+xcuserdata/
+*.xcuserstate
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+.swiftpm/
+App/WorldCupBracket/Support/WorldCupBracket.local.xcconfig
+.env
+.env.*
+!.env.example
+node_modules/
+coverage/
+supabase/.temp/
+Backend/supabase/.temp/
