@@ -39,6 +39,7 @@ private struct GroupsDashboardView: View {
     @Binding var path: [GroupsRoute]
     @State private var inviteText = ""
     @State private var joinMessage: String?
+    @State private var isJoiningInvite = false
     @FocusState private var isInviteFieldFocused: Bool
 
     var body: some View {
@@ -129,16 +130,16 @@ private struct GroupsDashboardView: View {
                         joinMessage = nil
                     }
 
-                if !trimmedInviteText.isEmpty || appModel.isBackendBusy {
+                if !trimmedInviteText.isEmpty || isJoiningInvite {
                     Button {
                         Task {
                             await joinInvite()
                         }
                     } label: {
-                        Text(appModel.isBackendBusy ? "Joining Group" : "Join Group")
+                        Text(isJoiningInvite ? "Joining Group" : "Join Group")
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
-                    .disabled(trimmedInviteText.isEmpty || appModel.isBackendBusy)
+                    .disabled(trimmedInviteText.isEmpty || isJoiningInvite)
                 }
 
                 if let joinMessage {
@@ -183,8 +184,13 @@ private struct GroupsDashboardView: View {
 
     @MainActor
     private func joinInvite() async {
-        guard !trimmedInviteText.isEmpty, !appModel.isBackendBusy else {
+        guard !trimmedInviteText.isEmpty, !isJoiningInvite else {
             return
+        }
+
+        isJoiningInvite = true
+        defer {
+            isJoiningInvite = false
         }
 
         let joined = await appModel.joinGroupRemotely(inviteText: trimmedInviteText)
