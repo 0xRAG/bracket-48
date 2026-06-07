@@ -1,4 +1,4 @@
-.PHONY: generate format lint test test-functions test-backend test-backend-linked test-backend-linked-query build-ios ci tickets
+.PHONY: generate format lint test test-functions test-backend test-backend-linked test-backend-linked-query hosted-dress-rehearsal build-ios ci tickets
 
 generate:
 	xcodegen generate
@@ -25,6 +25,9 @@ test-backend-linked:
 
 test-backend-linked-query:
 	pnpm dlx supabase db query --workdir Backend --linked --file supabase/tests/rls_authorization_test.sql --output table
+
+hosted-dress-rehearsal:
+	node Backend/scripts/hosted_dress_rehearsal.mjs
 
 build-ios: generate
 	xcodebuild -project Bracket48.xcodeproj -scheme Bracket48 -destination 'generic/platform=iOS Simulator' build

@@ -30,6 +30,14 @@ Run Edge Function unit tests for scoring and Sportmonks payload normalization:
 make test-functions
 ```
 
+Run the hosted scoring dress rehearsal against the linked Supabase project:
+
+```sh
+make hosted-dress-rehearsal
+```
+
+The rehearsal seeds disposable fake users, brackets, and pool entries, invokes the deployed `score-brackets` function in dry-run and persisted modes with simulated tournament results, verifies persisted leaderboard totals and score-event counts, then cleans up the fake users. Pass `--keep` directly to `Backend/scripts/hosted_dress_rehearsal.mjs` if you need to inspect the seeded records before cleanup.
+
 When validating the currently linked hosted project, use the explicit linked target. The pgTAP tests run inside a transaction and roll back their seeded test users/data:
 
 ```sh
