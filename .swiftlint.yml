@@ -30,7 +30,7 @@ opt_in_rules:
 excluded:
   - .build
   - DerivedData
-  - App/WorldCupBracket/Generated
+  - App/Bracket48/Generated
 
 line_length:
   warning: 120

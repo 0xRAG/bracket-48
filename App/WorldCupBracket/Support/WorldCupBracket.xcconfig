@@ -1,5 +1,0 @@
-WCB_BACKEND_MODE = supabase
-WCB_SUPABASE_URL =
-WCB_SUPABASE_ANON_KEY =
-
-#include? "WorldCupBracket.local.xcconfig"

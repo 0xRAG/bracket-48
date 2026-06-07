@@ -57,7 +57,7 @@ Required: No
 
 ## Notes
 
-Implemented in `WorldCupBracketCore` with Codable, Sendable value types for pools, memberships, entries, invite codes, entry phases, lock windows, and validation issues.
+Implemented in `Bracket48Core` with Codable, Sendable value types for pools, memberships, entries, invite codes, entry phases, lock windows, and validation issues.
 
 Verification:
 

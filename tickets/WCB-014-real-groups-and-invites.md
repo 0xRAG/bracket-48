@@ -1,6 +1,6 @@
 # WCB-014: Real Groups And Invites
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Priority: P0
 Phase: MVP
@@ -29,10 +29,10 @@ Users can create real groups, share invite links, and have friends join the same
 
 ## Acceptance Criteria
 
-- [ ] User can create a group that persists on the backend.
-- [ ] User can share an invite code/link backed by backend data.
-- [ ] Another authenticated user can join by invite code/link.
-- [ ] Groups tab renders backend memberships.
+- [x] User can create a group that persists on the backend.
+- [x] User can share an invite code/link backed by backend data.
+- [x] Another authenticated user can join by invite code/link.
+- [x] Groups tab renders backend memberships.
 
 ## Test Expectations
 
@@ -63,5 +63,6 @@ Roles:
 ## Notes
 
 - Added `SupabasePoolService` implementing create/list/join group operations behind `PoolServicing`.
-- Invite codes are generated client-side for now and protected by the backend unique constraint.
-- UI wiring and hosted schema deployment remain outstanding.
+- Invite codes are generated client-side and protected by the backend unique constraint.
+- Hosted schema is deployed.
+- Universal Links, public invite landing page, custom app URL scheme, invite preview RPC, and device invite join flow are working.

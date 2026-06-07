@@ -1,6 +1,6 @@
 # WCB-019: Group Bracket View/Edit Flow
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Priority: P1
 Phase: MVP
@@ -62,3 +62,5 @@ Roles:
 - Security And Integrity Judge:
 
 ## Notes
+
+Closed after `make test`, `make build-ios`, and manual device usage verified saved group bracket navigation, edit/read-only behavior, and single reorder affordance.

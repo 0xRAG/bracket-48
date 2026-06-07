@@ -4,7 +4,14 @@ Goal: get reliable fixture, live score, final score, standings, and knockout-res
 
 ## Recommendation
 
-Start with Sportmonks unless pricing/licensing review turns up a blocker. It has public World Cup 2026-specific plans, instant signup, fixtures, live scores, standings, squads, and bracket data. Keep Sportradar as the enterprise fallback if we need premium support, SLAs, or broader licensing coverage.
+Sportmonks is selected for the MVP unless licensing review turns up a blocker. It has public World Cup 2026-specific plans, instant signup, fixtures, live scores, standings, squads, and bracket data. Keep Sportradar as the enterprise fallback if we need premium support, SLAs, or broader licensing coverage.
+
+Implementation status:
+
+- Token stored as a Supabase Edge Function secret.
+- Normalized provider tables added in `Backend/supabase/migrations/007_sportmonks_results_ingestion.sql`.
+- Protected ingestion function added at `Backend/supabase/functions/sync-sportmonks-results`.
+- Confirmed World Cup 2026 provider IDs: league `732`, season `26618`, group stage `77478590`.
 
 ## Shortlist
 
@@ -82,7 +89,8 @@ Best fit:
 ## Integration Shape
 
 - Store provider IDs on internal teams and matches.
-- Add `match_results` table or extend existing match/result model in Supabase.
+- Store normalized fixtures/results in `tournament_matches`.
+- Store group standings snapshots in `group_standings`.
 - Create scheduled Supabase Edge Function to poll fixtures/results.
 - Add admin correction path for disputes or provider errors.
 - Score brackets from normalized internal results, not directly from provider payloads.

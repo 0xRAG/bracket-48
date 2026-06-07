@@ -37,7 +37,7 @@ Users and Apple reviewers get clear product, privacy, and support information be
 - [x] Privacy answers draft exists.
 - [x] Age rating draft exists.
 - [x] Screenshot generation script exists.
-- [ ] Public pages are deployed.
+- [x] Public pages are deployed.
 - [ ] App Store Connect record is completed.
 
 ## Test Expectations
@@ -68,4 +68,5 @@ Roles:
 
 ## Notes
 
-GitHub CLI auth is currently invalid on this machine, so Pages deployment may require re-authentication or manual enablement.
+- Public pages are deployed at `https://bracket48.app/`.
+- GitHub Pages is currently configured in legacy `gh-pages` branch mode; public site changes must be published to `gh-pages` until Pages is switched to GitHub Actions mode.

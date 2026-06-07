@@ -1,6 +1,6 @@
 # WCB-002: Tournament Data Schema
 
-Status: In Review
+Status: Done
 Owner: Codex
 Priority: P0
 Phase: MVP
@@ -67,6 +67,8 @@ Roles:
 
 This is a dependency for picks, scoring, provider ingestion, and leaderboards.
 
-Implemented in `App/WorldCupBracketCore/Sources/WorldCupBracketCore/TournamentSchema.swift`.
+Implemented in `App/Bracket48Core/Sources/Bracket48Core/TournamentSchema.swift`.
 
 The SwiftUI prototype now adapts its local fixture data from the core `Tournament` schema.
+
+Closed after the app, Sportmonks ingestion, scoring, and UI flows all moved onto the shared tournament schema.

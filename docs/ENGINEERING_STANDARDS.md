@@ -35,9 +35,9 @@ Recommended starting structure:
 ```text
 .
 ├── App/
-│   ├── WorldCupBracket/
-│   ├── WorldCupBracketTests/
-│   └── WorldCupBracketCore/
+│   ├── Bracket48/
+│   ├── Bracket48Tests/
+│   └── Bracket48Core/
 ├── Backend/
 ├── docs/
 ├── tickets/
@@ -49,7 +49,7 @@ Recommended starting structure:
 
 The actual Xcode project can be generated once we choose the app name and bundle identifier.
 
-`App/WorldCupBracketCore` is a Swift package for pure domain logic that can be tested before the app shell exists.
+`App/Bracket48Core` is a Swift package for pure domain logic that can be tested before the app shell exists.
 
 ## Swift Architecture
 

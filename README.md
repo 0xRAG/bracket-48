@@ -16,8 +16,8 @@ Bracket 48 is an independent, unofficial app for entertainment with friends. It 
 
 ## Current Code
 
-- `App/WorldCupBracketCore`: Swift package for shared domain logic and scoring.
-- `App/WorldCupBracket`: SwiftUI iOS app generated with XcodeGen.
+- `App/Bracket48Core`: Swift package for shared domain logic and scoring.
+- `App/Bracket48`: SwiftUI iOS app generated with XcodeGen.
 - `Backend`: Supabase/Postgres backend foundation, migrations, and setup notes.
 
 ## Local Workflow

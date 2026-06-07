@@ -12,10 +12,10 @@ lint:
 	swiftlint lint
 
 test:
-	swift test --package-path App/WorldCupBracketCore
+	swift test --package-path App/Bracket48Core
 
 build-ios: generate
-	xcodebuild -project WorldCupBracket.xcodeproj -scheme WorldCupBracket -destination 'generic/platform=iOS Simulator' build
+	xcodebuild -project Bracket48.xcodeproj -scheme Bracket48 -destination 'generic/platform=iOS Simulator' build
 
 ci: lint test build-ios
 

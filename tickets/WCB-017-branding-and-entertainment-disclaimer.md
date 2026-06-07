@@ -1,6 +1,6 @@
 # WCB-017: Branding And Entertainment Disclaimer
 
-Status: Completed
+Status: Done
 Owner: Codex
 Priority: P1
 Phase: MVP

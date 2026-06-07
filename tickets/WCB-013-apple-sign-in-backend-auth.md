@@ -1,6 +1,6 @@
 # WCB-013: Apple Sign In Backend Auth
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Priority: P0
 Phase: MVP
@@ -28,10 +28,10 @@ Users can securely access their account and keep brackets/groups across devices.
 
 ## Acceptance Criteria
 
-- [ ] User can sign in with Apple on device/simulator.
-- [ ] Backend profile exists for the signed-in user.
-- [ ] iOS app can fetch `me`.
-- [ ] Sign-out clears local authenticated session.
+- [x] User can sign in with Apple on device/simulator.
+- [x] Backend profile exists for the signed-in user.
+- [x] iOS app can fetch `me`.
+- [x] Sign-out clears local authenticated session.
 
 ## Test Expectations
 
@@ -62,4 +62,5 @@ Roles:
 
 - Added Apple Sign In entitlement wiring, native nonce generation, Supabase package dependency, and app config placeholders.
 - Added a Supabase-backed auth service that exchanges Apple ID tokens and upserts `app_users`.
-- The sign-up screen still supports prototype mode until real Supabase and Apple provider values are configured.
+- Real Supabase and Apple provider values are configured.
+- Device sign-in was proved with backend profile persistence, display-name persistence, sign-out, and in-app account deletion.

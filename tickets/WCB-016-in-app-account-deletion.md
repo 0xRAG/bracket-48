@@ -1,8 +1,9 @@
 # WCB-016: In-App Account Deletion
 
-## Status
-
-Completed
+Status: Done
+Owner: Codex
+Priority: P1
+Phase: MVP
 
 ## Goal
 

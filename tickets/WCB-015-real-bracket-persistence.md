@@ -1,6 +1,6 @@
 # WCB-015: Real Bracket Persistence
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Priority: P0
 Phase: MVP
@@ -29,11 +29,11 @@ Users can submit picks once, recover them later, and enter eligible groups.
 
 ## Acceptance Criteria
 
-- [ ] User can submit a standalone group-stage bracket to the backend.
-- [ ] User can submit a knockout bracket to the backend.
-- [ ] User can list their brackets after relaunch.
-- [ ] User can associate a bracket with an eligible group.
-- [ ] Duplicate entries for the same user, group, and phase are rejected.
+- [x] User can submit a standalone group-stage bracket to the backend.
+- [x] User can submit a knockout bracket to the backend.
+- [x] User can list their brackets after relaunch.
+- [x] User can associate a bracket with an eligible group.
+- [x] Duplicate entries for the same user, group, and phase are rejected.
 
 ## Test Expectations
 
@@ -65,4 +65,5 @@ Roles:
 
 - Added `SupabaseBracketService` implementing list/submit group-stage/submit knockout/enter bracket operations behind `BracketServicing`.
 - Pick payloads are encoded as JSON objects for the existing `brackets.picks` JSONB column.
-- UI wiring and hosted schema deployment remain outstanding.
+- Hosted schema is deployed.
+- Device flows proved group-stage bracket save, knockout bracket save, listing, group entry, delete guard, and linked bracket behavior.

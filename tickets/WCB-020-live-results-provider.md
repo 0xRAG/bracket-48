@@ -1,7 +1,7 @@
 # WCB-020: Live Results Provider
 
-Status: Backlog
-Owner: Unassigned
+Status: Done
+Owner: Codex
 Priority: P1
 Phase: MVP
 
@@ -31,13 +31,13 @@ Users can see group standings, completed match results, and scored brackets with
 
 ## Acceptance Criteria
 
-- [ ] Provider selected with pricing and license review.
-- [ ] Backend stores provider fixture/result IDs.
-- [ ] Results polling runs from trusted backend context.
-- [ ] Group-stage standings can be derived or stored.
-- [ ] Knockout winners update internal result records.
-- [ ] Scoring engine runs from internal result model.
-- [ ] Admin can correct provider errors.
+- [x] Provider selected with pricing and license review.
+- [x] Backend stores provider fixture/result IDs.
+- [x] Results polling runs from trusted backend context.
+- [x] Group-stage standings can be derived or stored.
+- [x] Knockout winners update internal result records.
+- [x] Scoring engine runs from internal result model.
+- [x] Admin can correct provider errors.
 
 ## Test Expectations
 
@@ -52,7 +52,23 @@ Keep live data informational and non-gambling. Do not display odds.
 
 ## Data And API Notes
 
-Current recommendation: evaluate Sportmonks first, with API-Football as backup comparison and Sportradar as enterprise fallback.
+Sportmonks selected for MVP. The API token is stored as a Supabase Edge Function secret. Normalized tables were added for provider teams, tournament matches, group standings, sync run audits, and result overrides.
+
+Confirmed provider constants:
+
+- League ID: `732`
+- Season ID: `26618`
+- Group stage ID: `77478590`
+
+The first Edge Function is `sync-sportmonks-results`. It supports `all`, `fixtures`, `standings`, and `live` sync modes.
+
+Hosted Cron is active:
+
+- `bracket48-results-live-sync`: `*/5 * * * *`
+- `bracket48-results-standings-sync`: `22 * * * *`
+- `bracket48-results-full-sync`: `37 */6 * * *`
+
+Successful syncs invoke `score-brackets` automatically.
 
 ## Agent Tribunal
 
@@ -69,3 +85,5 @@ Roles:
 ## Notes
 
 See `AppStore/sports-data-api-evaluation.md`.
+
+Closed after Sportmonks selection, hosted result ingestion, normalized result tables, and scheduled Supabase sync jobs were deployed and verified.

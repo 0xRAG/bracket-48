@@ -7,7 +7,7 @@ xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcworkspace/xcuserdata/
 .swiftpm/
-App/WorldCupBracket/Support/WorldCupBracket.local.xcconfig
+App/Bracket48/Support/Bracket48.local.xcconfig
 .env
 .env.*
 !.env.example

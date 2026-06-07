@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEVICE_ID="${1:-159CAA8C-E3C3-4AA8-ACF2-C497B28C0274}"
 BUNDLE_ID="app.bracket48.Bracket48"
 DERIVED_DATA="$ROOT_DIR/Build/ScreenshotDerivedData"
-APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/WorldCupBracket.app"
+APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Bracket48.app"
 OUTPUT_DIR="$ROOT_DIR/AppStore/Screenshots"
 
 mkdir -p "$OUTPUT_DIR"
@@ -15,8 +15,8 @@ xcrun simctl bootstatus "$DEVICE_ID" -b
 
 xcodebuild \
   -quiet \
-  -project "$ROOT_DIR/WorldCupBracket.xcodeproj" \
-  -scheme WorldCupBracket \
+  -project "$ROOT_DIR/Bracket48.xcodeproj" \
+  -scheme Bracket48 \
   -destination "id=$DEVICE_ID" \
   -configuration Debug \
   -derivedDataPath "$DERIVED_DATA" \

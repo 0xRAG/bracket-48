@@ -1,6 +1,6 @@
 # WCB-001: Scoring Engine
 
-Status: In Review
+Status: Done
 Owner: Codex
 Priority: P0
 Phase: MVP
@@ -78,10 +78,12 @@ Roles:
 
 This should be implemented before leaderboard UI.
 
-Implementation added in `App/WorldCupBracketCore`.
+Implementation added in `App/Bracket48Core`.
 
 Current test command:
 
 ```sh
 make test
 ```
+
+Closed after scoring regression tests passed and backend scoring integration began consuming the core scoring model.
