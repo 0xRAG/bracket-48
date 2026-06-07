@@ -68,18 +68,20 @@ The sync and scoring functions correctly require either the service-role bearer 
 Recommendation:
 
 - Keep `SYNC_RESULTS_SECRET` only in Supabase secrets.
-- Rotate it before launch.
 - Prefer scheduled/internal invocation paths where possible.
 - Log invocation metadata without logging secrets.
 
 Action Taken:
 
+- Rotated `SYNC_RESULTS_SECRET` in Supabase Edge Function secrets.
+- Updated the matching Supabase Vault secret `bracket48_sync_secret` used by Cron.
+- Verified `score-brackets` accepts the rotated secret with a protected dry-run request.
 - Narrowed `score-brackets` and `sync-sportmonks-results` CORS to `https://bracket48.app`.
 - Removed `x-sync-secret` from browser preflight allowed headers for those operational functions. Server-to-server callers can still pass the header because CORS is only a browser constraint.
 
 Follow-Up:
 
-- Rotate `SYNC_RESULTS_SECRET` before launch.
+- Rotate operational secrets again if they are ever pasted into an untrusted tool or shared outside the project.
 
 ### P1: Missing Repeatable RLS Authorization Tests
 
@@ -237,6 +239,5 @@ The Supabase publishable/anon key is intended to be public in client apps. The s
 Before App Store submission, close or explicitly accept these:
 
 - Extend backend authorization tests to cover deleted-user cascades.
-- Rotate `SYNC_RESULTS_SECRET`.
 - Confirm account deletion still works after hardening.
 - Re-test invite link flows on physical device after the migration.
