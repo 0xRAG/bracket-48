@@ -56,10 +56,10 @@ Hosted smoke test:
 
 ## Test Expectations
 
-- Result-to-scoring-model transformation tests.
-- Regression tests for group-stage third-place advancement scoring.
-- Regression tests for knockout round scoring.
-- RLS tests for group leaderboard visibility.
+- [x] Result-to-scoring-model transformation tests.
+- [x] Regression tests for group-stage third-place advancement scoring.
+- [x] Regression tests for knockout round scoring.
+- [x] RLS tests for group leaderboard visibility.
 
 ## Agent Tribunal
 
@@ -71,3 +71,7 @@ Roles:
 - Reviewer:
 - Product Judge:
 - Security And Integrity Judge:
+
+## Confidence Work
+
+Added shared Edge Function scoring tests in `Backend/supabase/functions/_shared/scoring_test.ts` and deployed the refactored `score-brackets` function against the tested shared scoring module.

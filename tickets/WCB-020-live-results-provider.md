@@ -41,10 +41,10 @@ Users can see group standings, completed match results, and scored brackets with
 
 ## Test Expectations
 
-- Provider payload fixture tests.
-- Result normalization tests.
-- Scoring regression tests.
-- Backend RLS tests.
+- [x] Provider payload fixture tests.
+- [x] Result normalization tests.
+- [x] Scoring regression tests.
+- [x] Backend RLS tests.
 
 ## Design Notes
 
@@ -87,3 +87,5 @@ Roles:
 See `AppStore/sports-data-api-evaluation.md`.
 
 Closed after Sportmonks selection, hosted result ingestion, normalized result tables, and scheduled Supabase sync jobs were deployed and verified.
+
+Added Deno regression tests for Sportmonks fixture/standing normalization in `Backend/supabase/functions/_shared/sportmonks-normalization_test.ts`.

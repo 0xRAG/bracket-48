@@ -24,6 +24,12 @@ Run database authorization tests against a local Supabase stack:
 make test-backend
 ```
 
+Run Edge Function unit tests for scoring and Sportmonks payload normalization:
+
+```sh
+make test-functions
+```
+
 When validating the currently linked hosted project, use the explicit linked target. The pgTAP tests run inside a transaction and roll back their seeded test users/data:
 
 ```sh

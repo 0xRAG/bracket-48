@@ -1,4 +1,4 @@
-.PHONY: generate format lint test test-backend test-backend-linked test-backend-linked-query build-ios ci tickets
+.PHONY: generate format lint test test-functions test-backend test-backend-linked test-backend-linked-query build-ios ci tickets
 
 generate:
 	xcodegen generate
@@ -14,6 +14,9 @@ lint:
 test:
 	swift test --package-path App/Bracket48Core
 
+test-functions:
+	pnpm dlx deno test Backend/supabase/functions/_shared
+
 test-backend:
 	pnpm dlx supabase test db --workdir Backend --local Backend/supabase/tests
 
@@ -26,7 +29,7 @@ test-backend-linked-query:
 build-ios: generate
 	xcodebuild -project Bracket48.xcodeproj -scheme Bracket48 -destination 'generic/platform=iOS Simulator' build
 
-ci: lint test test-backend build-ios
+ci: lint test test-functions test-backend build-ios
 
 tickets:
 	@ls tickets/WCB-*.md 2>/dev/null | sort || true
