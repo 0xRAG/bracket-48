@@ -492,7 +492,7 @@ final class AppModel {
     @MainActor
     @discardableResult
     func joinGroupRemotely(inviteText: String) async -> Bool {
-        guard let inviteCode = normalizedInviteCode(from: inviteText) else {
+        guard let inviteCode = InviteCodeNormalizer.normalizedInviteCode(from: inviteText) else {
             backendStatusMessage = "Enter a valid invite code or link."
             return false
         }
@@ -524,7 +524,7 @@ final class AppModel {
 
     @MainActor
     func handleIncomingURL(_ url: URL) {
-        guard let inviteCode = normalizedInviteCode(from: url.absoluteString) else {
+        guard let inviteCode = InviteCodeNormalizer.normalizedInviteCode(from: url.absoluteString) else {
             backendStatusMessage = "That invite link is not valid."
             return
         }
@@ -1016,38 +1016,6 @@ final class AppModel {
         while joinedGroups.contains(where: { $0.inviteCode == code }) {
             code = "\(baseCode)\(suffix)"
             suffix += 1
-        }
-
-        return String(code.prefix(8))
-    }
-
-    private func normalizedInviteCode(from inviteText: String) -> String? {
-        let trimmed = inviteText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let candidate: String
-
-        if let url = URL(string: trimmed) {
-            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            if let queryCode = components?.queryItems?.first(where: { item in
-                ["code", "invite", "invite_code"].contains(item.name.lowercased())
-            })?.value {
-                candidate = queryCode
-            } else if let lastPathComponent = url.pathComponents.last,
-                      lastPathComponent != "/"
-            {
-                candidate = lastPathComponent
-            } else {
-                candidate = trimmed
-            }
-        } else {
-            candidate = trimmed
-        }
-
-        let code = candidate.uppercased().filter { character in
-            character.unicodeScalars.allSatisfy { CharacterSet.alphanumerics.contains($0) }
-        }
-
-        guard !code.isEmpty else {
-            return nil
         }
 
         return String(code.prefix(8))

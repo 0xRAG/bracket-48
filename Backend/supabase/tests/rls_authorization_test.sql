@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(30);
+select plan(37);
 
 create or replace function pg_temp.login_as(user_id uuid)
 returns void
@@ -133,13 +133,26 @@ insert into auth.users (
         now(),
         '{"provider":"test","providers":["test"]}'::jsonb,
         '{}'::jsonb
+    ),
+    (
+        '00000000-0000-4000-8000-000000000104',
+        'authenticated',
+        'authenticated',
+        'rls-delete@example.test',
+        '',
+        now(),
+        now(),
+        now(),
+        '{"provider":"test","providers":["test"]}'::jsonb,
+        '{}'::jsonb
     );
 
 insert into public.app_users (id, display_name)
 values
     ('00000000-0000-4000-8000-000000000101', 'RLS Owner'),
     ('00000000-0000-4000-8000-000000000102', 'RLS Member'),
-    ('00000000-0000-4000-8000-000000000103', 'RLS Outsider');
+    ('00000000-0000-4000-8000-000000000103', 'RLS Outsider'),
+    ('00000000-0000-4000-8000-000000000104', 'RLS Delete User');
 
 insert into public.pools (id, owner_user_id, name, invite_code, type, status)
 values (
@@ -247,6 +260,81 @@ insert into public.bracket_score_events (
     'correct-group-winner',
     4,
     'RLS test score event'
+);
+
+insert into public.pools (id, owner_user_id, name, invite_code, type, status)
+values (
+    '10000000-0000-4000-8000-000000000002',
+    '00000000-0000-4000-8000-000000000104',
+    'RLS Delete Cascade Pool',
+    'RLSDEL001',
+    'full_tournament',
+    'open'
+);
+
+insert into public.brackets (id, user_id, phase, status, display_name, picks)
+values (
+    '20000000-0000-4000-8000-000000000005',
+    '00000000-0000-4000-8000-000000000104',
+    'group_stage',
+    'submitted',
+    'Delete cascade bracket',
+    '{"predictions":[]}'::jsonb
+);
+
+insert into public.pool_entries (id, pool_id, bracket_id, user_id, phase)
+values (
+    '30000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000005',
+    '00000000-0000-4000-8000-000000000104',
+    'group_stage'
+);
+
+insert into public.bracket_scores (
+    id,
+    pool_entry_id,
+    pool_id,
+    bracket_id,
+    user_id,
+    phase,
+    group_stage_points,
+    knockout_points,
+    total_points,
+    max_points,
+    source_hash
+) values (
+    '40000000-0000-4000-8000-000000000002',
+    '30000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000005',
+    '00000000-0000-4000-8000-000000000104',
+    'group_stage',
+    1,
+    0,
+    1,
+    100,
+    'rls-delete-test'
+);
+
+insert into public.bracket_score_events (
+    id,
+    bracket_score_id,
+    pool_entry_id,
+    source_type,
+    source_id,
+    rule_id,
+    points,
+    reason
+) values (
+    '50000000-0000-4000-8000-000000000002',
+    '40000000-0000-4000-8000-000000000002',
+    '30000000-0000-4000-8000-000000000002',
+    'group_stage_prediction',
+    'group-delete',
+    'delete-cascade-check',
+    1,
+    'RLS delete cascade score event'
 );
 
 set local role authenticated;
@@ -387,6 +475,47 @@ select is(
     (select count(*) from public.brackets where id = '20000000-0000-4000-8000-000000000001'),
     0::bigint,
     'anon cannot view brackets'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+delete from auth.users
+where id = '00000000-0000-4000-8000-000000000104';
+
+select is(
+    (select count(*) from public.app_users where id = '00000000-0000-4000-8000-000000000104'),
+    0::bigint,
+    'deleted auth user cascades to app profile'
+);
+select is(
+    (select count(*) from public.pools where id = '10000000-0000-4000-8000-000000000002'),
+    0::bigint,
+    'deleted owner cascades to owned pool'
+);
+select is(
+    (select count(*) from public.pool_memberships where user_id = '00000000-0000-4000-8000-000000000104'),
+    0::bigint,
+    'deleted user cascades to pool memberships'
+);
+select is(
+    (select count(*) from public.brackets where id = '20000000-0000-4000-8000-000000000005'),
+    0::bigint,
+    'deleted user cascades to brackets'
+);
+select is(
+    (select count(*) from public.pool_entries where id = '30000000-0000-4000-8000-000000000002'),
+    0::bigint,
+    'deleted user cascades to pool entries'
+);
+select is(
+    (select count(*) from public.bracket_scores where id = '40000000-0000-4000-8000-000000000002'),
+    0::bigint,
+    'deleted user cascades to bracket scores'
+);
+select is(
+    (select count(*) from public.bracket_score_events where id = '50000000-0000-4000-8000-000000000002'),
+    0::bigint,
+    'deleted user cascades to score events'
 );
 
 select * from finish();

@@ -38,7 +38,7 @@ Users can trust that their account, brackets, groups, invite links, and profile 
 - [x] Each finding includes severity, affected files/systems, risk, and recommended fix.
 - [x] RLS policies are tested for cross-user access to groups, brackets, entries, profiles, and leaderboards.
 - [x] Secrets are verified to be absent from committed source and exposed app bundles except intended public anon keys.
-- [ ] Invite links and custom URL scheme behavior are tested for malformed/hostile inputs.
+- [x] Invite links and custom URL scheme behavior are tested for malformed/hostile inputs.
 - [ ] Account deletion is verified end to end.
 - [ ] P0/P1 findings are ticketed or fixed before App Store submission.
 
@@ -85,3 +85,5 @@ Requested by Ryan as a full AppSec review of frontend, backend, auth, and public
 2026-06-07: Re-ran committed-source secret scan for Sportmonks token, sync secret, service-role key, private key blocks, Apple key references, client secrets, and JWT-shaped strings. Only documentation placeholders/examples were found.
 
 2026-06-07: Review document now covers frontend, backend, auth, database/RLS, Edge Functions, public site, invite/deep-link surfaces, local persistence, secrets, and launch-gate findings with severity, affected systems, risk, action taken, and follow-up.
+
+2026-06-07: Extracted invite-code normalization into `Bracket48Core`, tightened accepted URL surfaces to Bracket 48 Universal Links/custom scheme links, rejected hostile hosts/schemes/punctuation/overlong inputs, and added regression tests. Extended hosted rollback RLS tests to prove auth-user deletion cascades through profile, owned pools, memberships, brackets, pool entries, scores, and score events. Smoke-tested `delete-account` missing/invalid authorization responses. Valid-token account deletion still needs a real signed-in account run before marking complete.

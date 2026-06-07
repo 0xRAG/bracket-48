@@ -200,6 +200,34 @@ Recommendation:
 - Keep code normalization strict.
 - If Universal Links become flaky, serve AASA from an endpoint with explicit `application/json`.
 
+Action Taken:
+
+- Extracted invite-code normalization into `Bracket48Core`.
+- Restricted accepted links to Bracket 48 Universal Links on `bracket48.app`/`www.bracket48.app` and the `bracket48://join` custom scheme.
+- Rejected malformed codes, hostile hosts, non-HTTPS web links, unrelated custom-scheme hosts, encoded punctuation, and overlong values.
+- Added regression tests in `InviteCodeNormalizerTests`.
+
+### P2: Account Deletion Valid-Token Run Still Needs Manual Verification
+
+Affected:
+
+- `Backend/supabase/functions/delete-account/index.ts`
+- Supabase Auth user deletion cascade through `app_users`, `pools`, `pool_memberships`, `brackets`, `pool_entries`, `bracket_scores`, and `bracket_score_events`.
+
+Risk:
+
+The account deletion implementation is present and the database cascade path is now tested, but the exact deployed Edge Function path still needs one valid signed-in user token run before App Store submission.
+
+Action Taken:
+
+- Extended `Backend/supabase/tests/rls_authorization_test.sql` to seed a full dependent data graph for a fake auth user, delete that auth user, and verify all dependent rows cascade away.
+- Ran the linked hosted rollback-safe security test successfully.
+- Smoke-tested hosted `delete-account` missing/invalid authorization behavior. Supabase's Edge gateway rejects those requests before handler execution, which matches Supabase's documented default JWT verification behavior.
+
+Follow-Up:
+
+- Run account deletion from a real signed-in test account in the app and verify the user is signed out locally, their Auth user is gone, and owned groups/brackets/entries disappear.
+
 ### P3: Supabase Advisor Performance Warnings
 
 Affected:
