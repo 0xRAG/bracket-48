@@ -42,15 +42,15 @@ Secondary: Entertainment
 
 ## Marketing URL
 
-https://0xrag.github.io/bracket-48/
+https://bracket48.app/
 
 ## Support URL
 
-https://0xrag.github.io/bracket-48/support/
+https://bracket48.app/support/
 
 ## Privacy Policy URL
 
-https://0xrag.github.io/bracket-48/privacy/
+https://bracket48.app/privacy/
 
 ## Review Notes
 

@@ -1,6 +1,6 @@
 # App Store Privacy Answers Draft
 
-These answers reflect the current app implementation as of June 6, 2026. Revisit before submission if analytics, crash reporting, notifications, ads, or sports-data SDKs are added.
+These answers reflect the current app implementation as of June 7, 2026. Revisit before submission if analytics, crash reporting, notifications, ads, or sports-data SDKs are added.
 
 ## Tracking
 
@@ -70,4 +70,4 @@ These answers reflect the current app implementation as of June 6, 2026. Revisit
 
 Use the Privacy Policy URL unless we add a dedicated choices page:
 
-https://0xrag.github.io/bracket-48/privacy/
+https://bracket48.app/privacy/

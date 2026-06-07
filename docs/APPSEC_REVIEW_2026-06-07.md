@@ -2,7 +2,7 @@
 
 Date: 2026-06-07
 
-Status: Initial review complete, first remediation applied
+Status: Complete for MVP submission readiness
 
 ## Scope Reviewed
 
@@ -16,7 +16,7 @@ Status: Initial review complete, first remediation applied
 
 No P0 issue was found in the current review. The highest-risk area was the Supabase RPC surface: several `security definer` functions were executable through the public API because Postgres grants function execution broadly by default. Migration `011_harden_rpc_surface.sql` was applied to the linked Supabase project and moves the membership helper into an unexposed private schema, removes public execution from trigger helpers, restricts invite preview/join/create RPCs to authenticated users, adds an explicit auth check to invite joins, and generates invite codes server-side.
 
-The remaining important work is to add repeatable authorization tests, tighten operational access to privileged Edge Functions, sanitize backend error messages, and decide whether public invite preview should stay authenticated-only or become public again with rate limiting.
+All P0/P1 launch-gate findings identified in this review have been fixed or verified for MVP submission readiness. Remaining P2/P3 notes are documented product/security tradeoffs rather than current submission blockers.
 
 ## Findings
 
@@ -207,7 +207,7 @@ Action Taken:
 - Rejected malformed codes, hostile hosts, non-HTTPS web links, unrelated custom-scheme hosts, encoded punctuation, and overlong values.
 - Added regression tests in `InviteCodeNormalizerTests`.
 
-### P2: Account Deletion Valid-Token Run Still Needs Manual Verification
+### P2: Account Deletion Valid-Token Run
 
 Affected:
 
@@ -216,17 +216,20 @@ Affected:
 
 Risk:
 
-The account deletion implementation is present and the database cascade path is now tested, but the exact deployed Edge Function path still needs one valid signed-in user token run before App Store submission.
+The account deletion implementation needs to delete the Supabase Auth user and cascade dependent app data when invoked from a real signed-in app session.
 
 Action Taken:
 
 - Extended `Backend/supabase/tests/rls_authorization_test.sql` to seed a full dependent data graph for a fake auth user, delete that auth user, and verify all dependent rows cascade away.
 - Ran the linked hosted rollback-safe security test successfully.
 - Smoke-tested hosted `delete-account` missing/invalid authorization behavior. Supabase's Edge gateway rejects those requests before handler execution, which matches Supabase's documented default JWT verification behavior.
+- Ryan deleted a real signed-in account in-app on 2026-06-07.
+- Hosted Supabase verification confirmed only the seeded demo user remained in `auth.users` and `app_users`.
+- Hosted dependent-row checks showed zero non-demo rows across auth users, profiles, pools, memberships, brackets, pool entries, and bracket scores.
 
 Follow-Up:
 
-- Run account deletion from a real signed-in test account in the app and verify the user is signed out locally, their Auth user is gone, and owned groups/brackets/entries disappear.
+- Re-run once more before final production release if account-deletion code or Supabase Auth configuration changes.
 
 ### P3: Supabase Advisor Performance Warnings
 
@@ -265,8 +268,8 @@ The Supabase publishable/anon key is intended to be public in client apps. The s
 
 ## Launch Gate
 
-Before App Store submission, close or explicitly accept these:
+Closed for MVP submission readiness:
 
-- Extend backend authorization tests to cover deleted-user cascades.
-- Confirm account deletion still works after hardening.
-- Re-test invite link flows on physical device after the migration.
+- Backend authorization tests cover cross-user access and deleted-user cascades.
+- Account deletion was verified with a real signed-in account and hosted Supabase checks.
+- Invite link parsing is strict and regression-tested. Physical-device invite flow was previously exercised after Universal Link setup; re-test during the final device smoke pass.

@@ -1,6 +1,6 @@
 # App Store Age Rating Draft
 
-Apple requires the age rating questionnaire in App Store Connect. These answers reflect the current Bracket 48 implementation as of June 6, 2026.
+Apple requires the age rating questionnaire in App Store Connect. These answers reflect the current Bracket 48 implementation as of June 7, 2026.
 
 ## In-App Controls And Capabilities
 
