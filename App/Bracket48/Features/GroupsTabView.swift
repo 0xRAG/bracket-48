@@ -39,6 +39,7 @@ private struct GroupsDashboardView: View {
     @Binding var path: [GroupsRoute]
     @State private var inviteText = ""
     @State private var joinMessage: String?
+    @FocusState private var isInviteFieldFocused: Bool
 
     var body: some View {
         List {
@@ -117,12 +118,20 @@ private struct GroupsDashboardView: View {
                 TextField("Invite code or link", text: $inviteText)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
+                    .focused($isInviteFieldFocused)
+                    .submitLabel(.join)
+                    .onSubmit {
+                        Task {
+                            await joinInvite()
+                        }
+                    }
+                    .onChange(of: inviteText) { _, _ in
+                        joinMessage = nil
+                    }
 
                 Button {
                     Task {
-                        let joined = await appModel.joinGroupRemotely(inviteText: inviteText)
-                        joinMessage = appModel.backendStatusMessage ?? (joined ? "Group joined." : "That invite is already in your groups.")
-                        inviteText = ""
+                        await joinInvite()
                     }
                 } label: {
                     Text(appModel.isBackendBusy ? "Joining Group" : "Join Group")
@@ -144,6 +153,7 @@ private struct GroupsDashboardView: View {
             }
         }
         .navigationTitle("Groups")
+        .scrollDismissesKeyboard(.interactively)
         .task {
             await appModel.refreshBackendState()
         }
@@ -169,6 +179,23 @@ private struct GroupsDashboardView: View {
         }
 
         return !group.hasGroupStageEntry || (primaryBracketUnit.knockoutBracket != nil && !group.hasKnockoutEntry)
+    }
+
+    @MainActor
+    private func joinInvite() async {
+        let trimmedInviteText = inviteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInviteText.isEmpty, !appModel.isBackendBusy else {
+            return
+        }
+
+        let joined = await appModel.joinGroupRemotely(inviteText: trimmedInviteText)
+        let message = appModel.backendStatusMessage ?? (joined ? "Group joined." : "That invite is already in your groups.")
+        joinMessage = message
+
+        if joined || message == "That invite is already in your groups." {
+            inviteText = ""
+            isInviteFieldFocused = false
+        }
     }
 }
 
