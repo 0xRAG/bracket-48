@@ -28,7 +28,8 @@ actor SupabaseAuthService: AuthServicing {
             return profile
         }
 
-        return BackendUserProfile(id: user.id, displayName: "Player")
+        let displayName = user.providerDisplayName ?? "Player"
+        return try await saveProfile(AppUserRow(id: user.id, displayName: displayName))
     }
 
     func signInWithApple(idToken: String, nonce: String, displayName: String?) async throws -> BackendUserProfile {

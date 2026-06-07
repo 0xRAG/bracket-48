@@ -22,6 +22,7 @@ final class AppModel {
 
     @ObservationIgnored private let localStore: DraftStateStore
     @ObservationIgnored private let services: AppServices
+    @ObservationIgnored private var hasHydratedAuthenticatedSession = false
 
     var step: Step = .signUp
     var selectedTab: AppTab = .home
@@ -266,6 +267,55 @@ final class AppModel {
         selectedTab = pendingInvite == nil ? .home : .groups
         step = .home
         persist()
+    }
+
+    @MainActor
+    func hydrateAuthenticatedSession() async {
+        guard isLiveBackendConfigured else {
+            return
+        }
+
+        guard !hasHydratedAuthenticatedSession else {
+            return
+        }
+        hasHydratedAuthenticatedSession = true
+
+        do {
+            guard let profile = try await services.auth.currentUser() else {
+                if step != .signUp {
+                    resetForSignedOutUser()
+                }
+                return
+            }
+
+            let localDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let remoteDisplayName = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if remoteDisplayName == "Player",
+               !localDisplayName.isEmpty,
+               localDisplayName != "Player"
+            {
+                let repairedProfile = try await services.auth.updateDisplayName(localDisplayName)
+                displayName = repairedProfile.displayName
+            } else {
+                displayName = profile.displayName
+            }
+
+            if step == .signUp {
+                selectedTab = pendingInvite == nil ? .home : .groups
+                step = .home
+            }
+
+            persist()
+
+            if pendingInvite != nil {
+                await refreshPendingInvitePreview()
+            }
+
+            await refreshBackendState()
+        } catch {
+            backendStatusMessage = "Could not refresh your profile. \(error.localizedDescription)"
+        }
     }
 
     @MainActor

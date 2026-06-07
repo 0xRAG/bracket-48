@@ -55,5 +55,8 @@ struct RootView: View {
 
             appModel.handleIncomingURL(url)
         }
+        .task {
+            await appModel.hydrateAuthenticatedSession()
+        }
     }
 }
