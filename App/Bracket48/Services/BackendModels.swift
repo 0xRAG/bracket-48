@@ -121,6 +121,7 @@ struct BackendLeaderboardEntry: Identifiable, Equatable, Sendable {
     let knockoutPoints: Int
     let totalPoints: Int
     let maxPoints: Int
+    let possiblePointsRemaining: Int
     let calculatedAt: Date
 }
 

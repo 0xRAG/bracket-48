@@ -12,21 +12,23 @@ const simulation = {
     { group_id: "A", ordered_team_ids: ["usa", "mex", "can", "pan"] },
     { group_id: "B", ordered_team_ids: ["eng", "sco", "wal", "irn"] },
   ],
+  final_group_ids: ["A", "B"],
   advancing_third_place_team_ids: ["can"],
   knockout_results: [
-    { match_id: "r32-1", round: "roundOf32", winner_team_id: "usa" },
-    { match_id: "r16-1", round: "roundOf16", winner_team_id: "arg" },
-    { match_id: "qf-1", round: "quarterfinal", winner_team_id: "bra" },
-    { match_id: "sf-1", round: "semifinal", winner_team_id: "fra" },
-    { match_id: "final", round: "final", winner_team_id: "fra" },
+    { match_id: "r32-1", round: "roundOf32", winner_team_id: "usa", eliminated_team_ids: ["mex"] },
+    { match_id: "r16-1", round: "roundOf16", winner_team_id: "arg", eliminated_team_ids: ["usa"] },
+    { match_id: "qf-1", round: "quarterfinal", winner_team_id: "bra", eliminated_team_ids: ["eng"] },
+    { match_id: "sf-1", round: "semifinal", winner_team_id: "fra", eliminated_team_ids: ["bra"] },
+    { match_id: "final", round: "final", winner_team_id: "fra", eliminated_team_ids: ["arg"] },
   ],
+  eliminated_team_ids: ["mex", "usa", "eng", "bra", "arg"],
 };
 
 const expectedScores = [
-  { display_name: "Dress Alpha", phase: "group_stage", total_points: 28, max_points: 28, event_count: 10 },
-  { display_name: "Dress Alpha", phase: "knockout", total_points: 50, max_points: 50, event_count: 5 },
-  { display_name: "Dress Beta", phase: "group_stage", total_points: 18, max_points: 28, event_count: 6 },
-  { display_name: "Dress Beta", phase: "knockout", total_points: 12, max_points: 50, event_count: 2 },
+  { display_name: "Dress Alpha", phase: "group_stage", total_points: 28, max_points: 28, possible_points_remaining: 0, event_count: 10 },
+  { display_name: "Dress Alpha", phase: "knockout", total_points: 50, max_points: 50, possible_points_remaining: 0, event_count: 5 },
+  { display_name: "Dress Beta", phase: "group_stage", total_points: 18, max_points: 28, possible_points_remaining: 0, event_count: 6 },
+  { display_name: "Dress Beta", phase: "knockout", total_points: 12, max_points: 50, possible_points_remaining: 0, event_count: 2 },
 ];
 
 async function main() {
@@ -45,7 +47,7 @@ async function main() {
 
     const verification = await supabaseQueryFile("supabase/tests/hosted_dress_rehearsal_verify.sql", "json");
     assertVerification(JSON.parse(verification).rows);
-    console.log("Verified persisted leaderboard totals and score-event counts.");
+    console.log("Verified persisted leaderboard totals, possible points, and score-event counts.");
   } finally {
     if (keepSeedData) {
       console.log("Leaving hosted dress rehearsal data in place because --keep was provided.");
@@ -100,10 +102,16 @@ function assertScoreResponse(body, dryRun) {
       phase: score.phase,
       total_points: score.total_points,
       max_points: score.max_points,
+      possible_points_remaining: score.possible_points_remaining,
     }))
     .sort(scoreSort);
   const expected = expectedScores
-    .map(({ phase, total_points, max_points }) => ({ phase, total_points, max_points }))
+    .map(({ phase, total_points, max_points, possible_points_remaining }) => ({
+      phase,
+      total_points,
+      max_points,
+      possible_points_remaining,
+    }))
     .sort(scoreSort);
 
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {

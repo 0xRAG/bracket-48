@@ -56,6 +56,7 @@ export type KnockoutResult = {
   match_id: string;
   round: string;
   winner_team_id: string;
+  eliminated_team_ids?: string[];
 };
 
 export type ScoreEvent = {
@@ -76,13 +77,16 @@ export type ScoreBreakdown = {
   knockout_points: number;
   total_points: number;
   max_points: number;
+  possible_points_remaining: number;
   events: ScoreEvent[];
 };
 
 export type ScoringResults = {
   groupStandings: GroupStandingResult[];
+  finalGroupIDs: Set<string>;
   advancingThirdPlaceTeamIDs: Set<string>;
   knockoutResults: KnockoutResult[];
+  eliminatedTeamIDs: Set<string>;
 };
 
 export type DatabaseGroupStanding = {
@@ -146,13 +150,19 @@ export function scorePicks(input: {
   const groupStandingsByID = new Map(input.results.groupStandings.map((standing) => [standing.group_id, standing]));
   const knockoutResultsByMatchID = new Map(input.results.knockoutResults.map((result) => [result.match_id, result]));
 
+  const groupPredictionScores = new Map<string, number>();
   for (const prediction of input.picks.predictions ?? []) {
     const standing = groupStandingsByID.get(prediction.group_id);
     if (!standing) {
       continue;
     }
 
-    events.push(...scoreGroupPrediction(prediction, standing, input.results.advancingThirdPlaceTeamIDs));
+    const groupEvents = scoreGroupPrediction(prediction, standing, input.results.advancingThirdPlaceTeamIDs);
+    groupPredictionScores.set(
+      prediction.group_id,
+      groupEvents.reduce((total, event) => total + event.points, 0),
+    );
+    events.push(...groupEvents);
   }
 
   for (const pick of input.picks.picks ?? []) {
@@ -188,6 +198,7 @@ export function scorePicks(input: {
     knockout_points: knockoutPoints,
     total_points: groupStagePoints + knockoutPoints,
     max_points: maximumScore(input.picks),
+    possible_points_remaining: possiblePointsRemaining(input.picks, input.results, groupPredictionScores),
     events,
   };
 }
@@ -244,6 +255,48 @@ export function maximumScore(picks: BracketPicks): number {
   return groupStagePoints + knockoutPoints;
 }
 
+export function possiblePointsRemaining(
+  picks: BracketPicks,
+  results: ScoringResults,
+  currentGroupPredictionScores = new Map<string, number>(),
+): number {
+  const groupPointsPerPrediction = rules.correctGroupWinner
+    + rules.correctGroupRunnerUp
+    + rules.correctGroupThirdPlace
+    + rules.correctThirdPlaceAdvancement
+    + rules.perfectGroupTopThreeBonus;
+  const knockoutResultsByMatchID = new Set(results.knockoutResults.map((result) => result.match_id));
+
+  const groupStageRemaining = (picks.predictions ?? []).reduce((total, prediction) => {
+    if (results.finalGroupIDs.has(prediction.group_id)) {
+      return total;
+    }
+
+    const provisionalPoints = currentGroupPredictionScores.get(prediction.group_id) ?? 0;
+    return total + Math.max(0, groupPointsPerPrediction - provisionalPoints);
+  }, 0);
+
+  const knockoutRemaining = (picks.picks ?? []).reduce((total, pick) => {
+    if (knockoutResultsByMatchID.has(pick.match_id)) {
+      return total;
+    }
+
+    if (results.eliminatedTeamIDs.has(pick.picked_winner_team_id)) {
+      return total;
+    }
+
+    return total + (rules.knockoutRoundPoints[pick.round] ?? 0);
+  }, 0);
+
+  return groupStageRemaining + knockoutRemaining;
+}
+
+export function finalGroupIDs(groups: DatabaseGroupStanding[]): Set<string> {
+  return new Set(groups
+    .filter((group) => group.teams.length >= 4 && group.teams.every((team) => (team.played ?? 0) >= 3))
+    .map((group) => groupIDFromName(group.group_name)));
+}
+
 export function advancingThirdPlaceTeams(groups: DatabaseGroupStanding[]): Set<string> {
   return new Set(groups
     .flatMap((group) => group.teams.map((team) => ({ ...team, group_name: group.group_name })))
@@ -284,6 +337,8 @@ export function parseKnockoutResult(value: unknown): KnockoutResult | null {
     match_id: object["match_id"],
     round: object["round"],
     winner_team_id: object["winner_team_id"],
+    eliminated_team_ids: arrayValue(object["eliminated_team_ids"])
+      .filter((teamID): teamID is string => typeof teamID === "string"),
   };
 }
 

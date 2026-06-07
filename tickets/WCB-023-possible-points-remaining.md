@@ -1,7 +1,7 @@
 # WCB-023: Possible Points Remaining In Groups
 
-Status: Backlog
-Owner: Unassigned
+Status: Done
+Owner: Codex
 Priority: P2
 Phase: V1
 
@@ -28,10 +28,10 @@ Players can understand who is truly still alive in a group, not just who is curr
 
 ## Acceptance Criteria
 
-- [ ] Group detail standings include a possible-points-remaining value for each participant.
-- [ ] Remaining points decrease as matches become final and brackets are rescored.
-- [ ] Values are consistent with the published scoring explainer.
-- [ ] Empty or unscored groups still render cleanly.
+- [x] Group detail standings include a possible-points-remaining value for each participant.
+- [x] Remaining points decrease as matches become final and brackets are rescored.
+- [x] Values are consistent with the published scoring explainer.
+- [x] Empty or unscored groups still render cleanly.
 
 ## Test Expectations
 
@@ -61,3 +61,5 @@ Roles:
 ## Notes
 
 Requested by Ryan during invite-functionality work.
+
+2026-06-07: Added `possible_points_remaining` to persisted bracket scores, calculated it in the hosted scoring function, exposed it through the iOS leaderboard model, and rendered `+N possible` beneath group detail standings rows. Function tests now cover unresolved versus finalized result states plus eliminated future knockout picks, and the hosted dress rehearsal verifies persisted totals, possible points, and score-event counts.

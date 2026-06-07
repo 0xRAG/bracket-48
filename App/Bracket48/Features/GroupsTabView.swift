@@ -444,6 +444,11 @@ private struct GroupDetailView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(standing.displayName)
                                     .font(.headline)
+                                if standing.possiblePointsRemaining > 0 {
+                                    Text("+\(standing.possiblePointsRemaining) possible")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
 
                             Spacer()
@@ -629,6 +634,7 @@ private struct GroupStandingRow: Identifiable, Hashable {
     let displayName: String
     let totalPoints: Int
     let maxPoints: Int
+    let possiblePointsRemaining: Int
 
     static func combined(from entries: [BackendLeaderboardEntry]) -> [GroupStandingRow] {
         let grouped = Dictionary(grouping: entries, by: \.userID)
@@ -638,7 +644,8 @@ private struct GroupStandingRow: Identifiable, Hashable {
                 id: userID,
                 displayName: entries.first?.displayName ?? "Player",
                 totalPoints: entries.reduce(0) { $0 + $1.totalPoints },
-                maxPoints: entries.reduce(0) { $0 + $1.maxPoints }
+                maxPoints: entries.reduce(0) { $0 + $1.maxPoints },
+                possiblePointsRemaining: entries.reduce(0) { $0 + $1.possiblePointsRemaining }
             )
         }
         .sorted {

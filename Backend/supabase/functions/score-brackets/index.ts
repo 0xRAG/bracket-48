@@ -3,6 +3,7 @@ import {
   advancingThirdPlaceTeams,
   appRound,
   arrayValue,
+  finalGroupIDs,
   groupIDFromName,
   internalKnockoutMatchID,
   numberOrNull,
@@ -98,8 +99,10 @@ async function loadResults(
   source: "simulation" | "database";
   sourceHash: string;
   groupStandings: GroupStandingResult[];
+  finalGroupIDs: Set<string>;
   advancingThirdPlaceTeamIDs: Set<string>;
   knockoutResults: KnockoutResult[];
+  eliminatedTeamIDs: Set<string>;
 }> {
   const simulationObject = objectValue(simulation);
   if (simulationObject) {
@@ -110,32 +113,59 @@ async function loadResults(
       arrayValue(simulationObject["advancing_third_place_team_ids"])
         .filter((value): value is string => typeof value === "string"),
     );
+    const simulationFinalGroupIDs = new Set(
+      arrayValue(simulationObject["final_group_ids"])
+        .filter((value): value is string => typeof value === "string"),
+    );
     const knockoutResults = arrayValue(simulationObject["knockout_results"])
       .map(parseKnockoutResult)
       .filter((result): result is KnockoutResult => !!result);
+    const eliminatedTeamIDs = new Set([
+      ...arrayValue(simulationObject["eliminated_team_ids"])
+        .filter((value): value is string => typeof value === "string"),
+      ...knockoutResults.flatMap((result) => result.eliminated_team_ids ?? []),
+    ]);
 
     return {
       source: "simulation",
-      sourceHash: await sha256(JSON.stringify({ groupStandings, advancingThirdPlaceTeamIDs: [...advancingThirdPlaceTeamIDs], knockoutResults })),
+      sourceHash: await sha256(JSON.stringify({
+        groupStandings,
+        finalGroupIDs: [...simulationFinalGroupIDs],
+        advancingThirdPlaceTeamIDs: [...advancingThirdPlaceTeamIDs],
+        knockoutResults,
+        eliminatedTeamIDs: [...eliminatedTeamIDs],
+      })),
       groupStandings,
+      finalGroupIDs: simulationFinalGroupIDs,
       advancingThirdPlaceTeamIDs,
       knockoutResults,
+      eliminatedTeamIDs,
     };
   }
 
   const groupStandings = await loadDatabaseGroupStandings(adminClient);
   const knockoutResults = await loadDatabaseKnockoutResults(adminClient);
   const advancingThirdPlaceTeamIDs = advancingThirdPlaceTeams(groupStandings);
+  const databaseFinalGroupIDs = finalGroupIDs(groupStandings);
+  const eliminatedTeamIDs = new Set(knockoutResults.flatMap((result) => result.eliminated_team_ids ?? []));
 
   return {
     source: "database",
-    sourceHash: await sha256(JSON.stringify({ groupStandings, advancingThirdPlaceTeamIDs: [...advancingThirdPlaceTeamIDs], knockoutResults })),
+    sourceHash: await sha256(JSON.stringify({
+      groupStandings,
+      finalGroupIDs: [...databaseFinalGroupIDs],
+      advancingThirdPlaceTeamIDs: [...advancingThirdPlaceTeamIDs],
+      knockoutResults,
+      eliminatedTeamIDs: [...eliminatedTeamIDs],
+    })),
     groupStandings: groupStandings.map((standing) => ({
       group_id: groupIDFromName(standing.group_name),
       ordered_team_ids: standing.teams.map((team) => team.team_id).filter((teamID): teamID is string => !!teamID),
     })),
+    finalGroupIDs: databaseFinalGroupIDs,
     advancingThirdPlaceTeamIDs,
     knockoutResults,
+    eliminatedTeamIDs,
   };
 }
 
@@ -181,7 +211,7 @@ async function loadDatabaseGroupStandings(adminClient: SupabaseAdminClient): Pro
 async function loadDatabaseKnockoutResults(adminClient: SupabaseAdminClient): Promise<KnockoutResult[]> {
   const { data, error } = await adminClient
     .from("tournament_matches")
-    .select("knockout_round,match_number,winner_team_id")
+    .select("knockout_round,match_number,winner_team_id,home_team_id,away_team_id")
     .eq("phase", "knockout")
     .eq("status", "final")
     .not("winner_team_id", "is", null)
@@ -200,6 +230,8 @@ async function loadDatabaseKnockoutResults(adminClient: SupabaseAdminClient): Pr
     if (!round || !winnerTeamID) {
       continue;
     }
+    const participantTeamIDs = [row.home_team_id, row.away_team_id]
+      .filter((teamID): teamID is string => typeof teamID === "string");
 
     const index = (counters.get(round) ?? 0) + 1;
     counters.set(round, index);
@@ -207,6 +239,7 @@ async function loadDatabaseKnockoutResults(adminClient: SupabaseAdminClient): Pr
       match_id: internalKnockoutMatchID(round, index),
       round,
       winner_team_id: winnerTeamID,
+      eliminated_team_ids: participantTeamIDs.filter((teamID) => teamID !== winnerTeamID),
     });
   }
 
@@ -257,6 +290,7 @@ async function persistScores(
         knockout_points: score.knockout_points,
         total_points: score.total_points,
         max_points: score.max_points,
+        possible_points_remaining: score.possible_points_remaining,
         scoring_version: scoringVersion,
         source_hash: sourceHash,
         calculated_at: new Date().toISOString(),

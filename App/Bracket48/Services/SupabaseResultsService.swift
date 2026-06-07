@@ -49,7 +49,7 @@ actor SupabaseResultsService: ResultsServicing {
             .select(
                 """
                 id,pool_id,bracket_id,user_id,phase,group_stage_points,knockout_points,total_points,\
-                max_points,calculated_at,app_users!inner(display_name)
+                max_points,possible_points_remaining,calculated_at,app_users!inner(display_name)
                 """
             )
             .eq("pool_id", value: poolID.uuidString)
@@ -182,6 +182,7 @@ private struct LeaderboardRow: Codable, Sendable {
     let knockoutPoints: Int
     let totalPoints: Int
     let maxPoints: Int
+    let possiblePointsRemaining: Int
     let calculatedAt: Date
     let appUsers: LeaderboardUserRow
 
@@ -195,6 +196,7 @@ private struct LeaderboardRow: Codable, Sendable {
         case knockoutPoints = "knockout_points"
         case totalPoints = "total_points"
         case maxPoints = "max_points"
+        case possiblePointsRemaining = "possible_points_remaining"
         case calculatedAt = "calculated_at"
         case appUsers = "app_users"
     }
@@ -211,6 +213,7 @@ private struct LeaderboardRow: Codable, Sendable {
             knockoutPoints: knockoutPoints,
             totalPoints: totalPoints,
             maxPoints: maxPoints,
+            possiblePointsRemaining: possiblePointsRemaining,
             calculatedAt: calculatedAt
         )
     }
