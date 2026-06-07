@@ -37,7 +37,7 @@ Users can trust that their account, brackets, groups, invite links, and profile 
 - [ ] Findings cover frontend, backend, auth, database, functions, and public site.
 - [ ] Each finding includes severity, affected files/systems, risk, and recommended fix.
 - [x] RLS policies are tested for cross-user access to groups, brackets, entries, profiles, and leaderboards.
-- [ ] Secrets are verified to be absent from committed source and exposed app bundles except intended public anon keys.
+- [x] Secrets are verified to be absent from committed source and exposed app bundles except intended public anon keys.
 - [ ] Invite links and custom URL scheme behavior are tested for malformed/hostile inputs.
 - [ ] Account deletion is verified end to end.
 - [ ] P0/P1 findings are ticketed or fixed before App Store submission.
@@ -81,3 +81,5 @@ Requested by Ryan as a full AppSec review of frontend, backend, auth, and public
 2026-06-07: Narrowed browser CORS on operational scoring and results sync functions to `https://bracket48.app` and removed `x-sync-secret` from preflight-allowed headers. Redeployed both functions and verified OPTIONS headers.
 
 2026-06-07: Rotated `SYNC_RESULTS_SECRET`, updated the matching `bracket48_sync_secret` Vault value used by Cron, and verified protected score dry-run access with the rotated secret.
+
+2026-06-07: Re-ran committed-source secret scan for Sportmonks token, sync secret, service-role key, private key blocks, Apple key references, client secrets, and JWT-shaped strings. Only documentation placeholders/examples were found.

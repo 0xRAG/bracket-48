@@ -232,6 +232,7 @@ The Supabase publishable/anon key is intended to be public in client apps. The s
 - Queried live `pg_policies`.
 - Queried live function grants for `anon`, `authenticated`, and `public`.
 - Searched committed source for Sportmonks token, service-role key, Apple private key material, client secrets, and JWT-like strings.
+- Re-ran committed-source secret scan after secret rotation; only documentation placeholders/examples were found.
 - Reviewed auth, invite handling, account deletion function, scoring function, sync function, public site, and local draft storage.
 
 ## Launch Gate
