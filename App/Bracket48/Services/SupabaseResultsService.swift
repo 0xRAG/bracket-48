@@ -1,5 +1,5 @@
 import Foundation
-import Supabase
+@preconcurrency import Supabase
 import Bracket48Core
 
 actor SupabaseResultsService: ResultsServicing {

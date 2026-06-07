@@ -1,5 +1,5 @@
 import Foundation
-import Supabase
+@preconcurrency import Supabase
 
 enum SupabaseClientFactory {
     static func makeClient(configuration: AppConfiguration = .main) throws -> SupabaseClient {
