@@ -7,9 +7,12 @@ BUNDLE_ID="app.bracket48.Bracket48"
 DERIVED_DATA="$ROOT_DIR/Build/ScreenshotDerivedData"
 APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Bracket48.app"
 OUTPUT_DIR="$ROOT_DIR/AppStore/Screenshots"
+IPHONE_65_OUTPUT_DIR="$OUTPUT_DIR/iPhone-6.5"
 
 mkdir -p "$OUTPUT_DIR"
+mkdir -p "$IPHONE_65_OUTPUT_DIR"
 rm -f "$OUTPUT_DIR"/*.png
+rm -f "$IPHONE_65_OUTPUT_DIR"/*.png
 
 xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
 xcrun simctl bootstatus "$DEVICE_ID" -b
@@ -43,4 +46,9 @@ capture "04" "groups" "groups"
 capture "05" "winner" "winner"
 capture "06" "profile" "profile"
 
+for screenshot in "$OUTPUT_DIR"/*.png; do
+  sips -z 2688 1242 "$screenshot" --out "$IPHONE_65_OUTPUT_DIR/$(basename "$screenshot")" >/dev/null
+done
+
 echo "Screenshots saved to $OUTPUT_DIR"
+echo "iPhone 6.5-inch upload screenshots saved to $IPHONE_65_OUTPUT_DIR"

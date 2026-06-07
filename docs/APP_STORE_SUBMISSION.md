@@ -58,14 +58,16 @@ Use the drafts in:
 - `AppStore/privacy-answers.md`
 - `AppStore/age-rating.md`
 
-Upload screenshots from:
+Upload iPhone 6.5-inch screenshots from:
 
-- `AppStore/Screenshots/01-home.png`
-- `AppStore/Screenshots/02-brackets.png`
-- `AppStore/Screenshots/03-group-bracket.png`
-- `AppStore/Screenshots/04-groups.png`
-- `AppStore/Screenshots/05-winner.png`
-- `AppStore/Screenshots/06-profile.png`
+- `AppStore/Screenshots/iPhone-6.5/01-home.png`
+- `AppStore/Screenshots/iPhone-6.5/02-brackets.png`
+- `AppStore/Screenshots/iPhone-6.5/03-group-bracket.png`
+- `AppStore/Screenshots/iPhone-6.5/04-groups.png`
+- `AppStore/Screenshots/iPhone-6.5/05-winner.png`
+- `AppStore/Screenshots/iPhone-6.5/06-profile.png`
+
+The root `AppStore/Screenshots/*.png` files are simulator originals and may not match App Store Connect's accepted upload dimensions. The `iPhone-6.5` copies are resized to `1242 x 2688`, which is accepted for the iPhone 6.5-inch screenshot slot.
 
 URLs:
 
