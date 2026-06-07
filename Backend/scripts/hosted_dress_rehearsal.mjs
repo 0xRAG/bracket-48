@@ -46,7 +46,7 @@ async function main() {
     console.log(`Persisted run scored ${persisted.score_count} entries.`);
 
     const verification = await supabaseQueryFile("supabase/tests/hosted_dress_rehearsal_verify.sql", "json");
-    assertVerification(JSON.parse(verification).rows);
+    assertVerification(parseQueryRows(verification, "dress rehearsal verification"));
     console.log("Verified persisted leaderboard totals, possible points, and score-event counts.");
 
     await scoreDatabasePool(secrets);
@@ -77,7 +77,7 @@ async function loadSecrets() {
       "from vault.decrypted_secrets;",
     "json",
   );
-  const [row] = JSON.parse(output).rows;
+  const [row] = parseQueryRows(output, "Supabase Vault secrets");
   if (!row?.project_url || !row?.sync_secret) {
     throw new Error("Could not load hosted project URL and sync secret from Supabase Vault.");
   }
@@ -91,13 +91,14 @@ async function score(secrets, dryRun) {
       "Content-Type": "application/json",
       "x-sync-secret": secrets.sync_secret,
     },
+    signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({
       dry_run: dryRun,
       pool_id: poolID,
       simulation,
     }),
   });
-  const body = await response.json();
+  const body = await parseFunctionResponse(response, "score-brackets");
   if (!response.ok) {
     throw new Error(`score-brackets returned ${response.status}: ${JSON.stringify(body)}`);
   }
@@ -111,12 +112,13 @@ async function scoreDatabasePool(secrets) {
       "Content-Type": "application/json",
       "x-sync-secret": secrets.sync_secret,
     },
+    signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({
       dry_run: false,
       pool_id: poolID,
     }),
   });
-  const body = await response.json();
+  const body = await parseFunctionResponse(response, "score-brackets");
   if (!response.ok) {
     throw new Error(`database score-brackets returned ${response.status}: ${JSON.stringify(body)}`);
   }
@@ -133,6 +135,7 @@ async function applyResultOverride(secrets) {
       "Content-Type": "application/json",
       "x-sync-secret": secrets.sync_secret,
     },
+    signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({
       match_id: "dress-r32-1",
       corrected_status: "final",
@@ -143,7 +146,7 @@ async function applyResultOverride(secrets) {
       scoring_pool_id: poolID,
     }),
   });
-  const body = await response.json();
+  const body = await parseFunctionResponse(response, "apply-result-override");
   if (!response.ok) {
     throw new Error(`apply-result-override returned ${response.status}: ${JSON.stringify(body)}`);
   }
@@ -160,7 +163,7 @@ async function assertKnockoutTotals(expectedRows) {
       "order by pool_entry_id;",
     "json",
   );
-  const actual = JSON.parse(output).rows.map((row) => ({
+  const actual = parseQueryRows(output, "knockout score totals").map((row) => ({
     pool_entry_id: row.pool_entry_id,
     total_points: row.total_points,
   }));
@@ -173,6 +176,10 @@ async function assertKnockoutTotals(expectedRows) {
 function assertScoreResponse(body, dryRun) {
   if (body.scored !== true || body.dry_run !== dryRun || body.result_source !== "simulation" || body.score_count !== 4) {
     throw new Error(`Unexpected score response: ${JSON.stringify(body)}`);
+  }
+
+  if (!Array.isArray(body.scores)) {
+    throw new Error(`score-brackets response did not include a scores array: ${JSON.stringify(body)}`);
   }
 
   const actual = [...body.scores]
@@ -226,6 +233,7 @@ async function supabaseQuery(sql, output = "table") {
     sql,
   ], {
     cwd: new URL("../..", import.meta.url),
+    env: supabaseCliEnv(),
     maxBuffer: 1024 * 1024 * 10,
   });
   return stripSupabaseNoise(stdout);
@@ -246,9 +254,51 @@ async function supabaseQueryFile(file, output = "table") {
     output,
   ], {
     cwd: new URL("../..", import.meta.url),
+    env: supabaseCliEnv(),
     maxBuffer: 1024 * 1024 * 10,
   });
   return stripSupabaseNoise(stdout);
+}
+
+function parseQueryRows(output, label) {
+  let parsed;
+  try {
+    parsed = JSON.parse(output);
+  } catch (error) {
+    throw new Error(`Could not parse ${label} JSON output: ${error.message}. Output: ${output}`);
+  }
+
+  if (Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  if (Array.isArray(parsed?.rows)) {
+    return parsed.rows;
+  }
+
+  throw new Error(`Expected ${label} query output to contain rows, got: ${JSON.stringify(parsed)}`);
+}
+
+async function parseFunctionResponse(response, functionName) {
+  const text = await response.text();
+  if (text.length === 0) {
+    throw new Error(`${functionName} returned ${response.status} with an empty response body.`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${functionName} returned non-JSON response ${response.status}: ${text}`);
+  }
+}
+
+function supabaseCliEnv() {
+  return {
+    ...process.env,
+    DO_NOT_TRACK: "1",
+    NO_COLOR: "1",
+    SUPABASE_TELEMETRY_DISABLED: "1",
+  };
 }
 
 function stripSupabaseNoise(output) {
@@ -260,6 +310,6 @@ function stripSupabaseNoise(output) {
 }
 
 main().catch((error) => {
-  console.error(error.message);
+  console.error(error.stack ?? error.message);
   process.exit(1);
 });
