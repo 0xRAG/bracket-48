@@ -83,16 +83,30 @@ Risk:
 
 Current RLS behavior has been manually exercised through the app, but the system needs repeatable tests for cross-user data access before broader distribution.
 
-Recommendation:
+Action Taken:
 
-Add a backend authorization test matrix covering:
+- Added `Backend/supabase/tests/rls_authorization_test.sql`.
+- Added `make test-backend` for local Supabase pgTAP runs.
+- Added `make test-backend-linked` for explicit linked-project pgTAP runs.
+- Ran the test SQL against the linked database through `supabase db query` because the Supabase pgTAP runner requires Docker.
+- Confirmed the test transaction rolled back and left no fake auth users or pools behind.
+- The first test run exposed an infinite-recursion bug in the `pool_entries` insert policy.
+- Added and applied `Backend/supabase/migrations/012_fix_pool_entry_insert_rls_recursion.sql`.
 
-- Owner can view/update own pool.
+Coverage:
+
+- Owner can view own pool, memberships, entries, entered bracket, and cannot delete an entered bracket.
 - Member can view group participants, entered brackets, entries, and leaderboard rows.
 - Non-member cannot view group participants, entries, brackets, or scores.
+- Active member can enter their own bracket.
+- Non-member cannot enter a bracket.
 - User cannot delete a bracket after it is entered into a group.
 - Anonymous users cannot call authenticated RPCs.
-- Deleted users cascade out of app-owned data.
+
+Follow-Up:
+
+- Add a deleted-user cascade test once local Supabase test containers are available.
+- Prefer `make test-backend` locally/CI once Docker Desktop or a CI Postgres service is configured.
 
 ### P2: Invite Preview Exposes Group Metadata
 
@@ -207,7 +221,7 @@ The Supabase publishable/anon key is intended to be public in client apps. The s
 
 Before App Store submission, close or explicitly accept these:
 
-- Add backend authorization tests for core RLS paths.
+- Extend backend authorization tests to cover deleted-user cascades.
 - Rotate `SYNC_RESULTS_SECRET`.
 - Sanitize production-facing Edge Function errors.
 - Confirm account deletion still works after hardening.

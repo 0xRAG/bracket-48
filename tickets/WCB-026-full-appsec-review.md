@@ -36,7 +36,7 @@ Users can trust that their account, brackets, groups, invite links, and profile 
 
 - [ ] Findings cover frontend, backend, auth, database, functions, and public site.
 - [ ] Each finding includes severity, affected files/systems, risk, and recommended fix.
-- [ ] RLS policies are tested for cross-user access to groups, brackets, entries, profiles, and leaderboards.
+- [x] RLS policies are tested for cross-user access to groups, brackets, entries, profiles, and leaderboards.
 - [ ] Secrets are verified to be absent from committed source and exposed app bundles except intended public anon keys.
 - [ ] Invite links and custom URL scheme behavior are tested for malformed/hostile inputs.
 - [ ] Account deletion is verified end to end.
@@ -73,3 +73,5 @@ Roles:
 Requested by Ryan as a full AppSec review of frontend, backend, auth, and public sites.
 
 2026-06-07: Started review, ran Supabase database advisors, inspected live RLS/RPC grants, reviewed Edge Functions, public site, invite link handling, local persistence, and app configuration. Added `011_harden_rpc_surface.sql` to close initial RPC exposure findings.
+
+2026-06-07: Added pgTAP RLS authorization tests for owner/member/non-member/anon visibility and entry behavior. The test exposed infinite recursion in the pool entry insert policy, fixed by `012_fix_pool_entry_insert_rls_recursion.sql`, and was verified against the linked database through a rollback-only query run.

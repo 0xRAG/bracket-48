@@ -18,6 +18,24 @@ supabase start
 supabase db reset
 ```
 
+Run database authorization tests against a local Supabase stack:
+
+```sh
+make test-backend
+```
+
+When validating the currently linked hosted project, use the explicit linked target. The pgTAP tests run inside a transaction and roll back their seeded test users/data:
+
+```sh
+make test-backend-linked
+```
+
+If Docker Desktop is not running, the Supabase pgTAP runner may be unavailable. Use the query-backed linked smoke target instead:
+
+```sh
+make test-backend-linked-query
+```
+
 The iOS app should receive backend settings through local configuration, not checked-in secrets:
 
 - `WCB_BACKEND_MODE`: `supabase`.
