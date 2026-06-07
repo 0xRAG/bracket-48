@@ -1,7 +1,7 @@
 # WCB-026: Full AppSec Review
 
-Status: Backlog
-Owner: Unassigned
+Status: In Progress
+Owner: Codex
 Priority: P1
 Phase: MVP
 
@@ -71,3 +71,5 @@ Roles:
 ## Notes
 
 Requested by Ryan as a full AppSec review of frontend, backend, auth, and public sites.
+
+2026-06-07: Started review, ran Supabase database advisors, inspected live RLS/RPC grants, reviewed Edge Functions, public site, invite link handling, local persistence, and app configuration. Added `011_harden_rpc_surface.sql` to close initial RPC exposure findings.

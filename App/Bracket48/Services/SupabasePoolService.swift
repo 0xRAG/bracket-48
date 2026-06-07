@@ -31,16 +31,8 @@ actor SupabasePoolService: PoolServicing {
     }
 
     func createPool(_ request: CreatePoolRequest) async throws -> BackendPoolSummary {
-        let userID = try authenticatedUserID()
-        let newPool = NewPoolRow(
-            ownerUserID: userID,
-            name: request.name,
-            inviteCode: Self.makeInviteCode(),
-            type: DatabasePoolType(request.type)
-        )
-
         let row: PoolRow = try await client
-            .rpc("create_pool", params: CreatePoolParams(pool: newPool))
+            .rpc("create_pool", params: CreatePoolParams(request: request))
             .execute()
             .value
 
@@ -126,25 +118,6 @@ actor SupabasePoolService: PoolServicing {
 
         return userID
     }
-
-    private static func makeInviteCode() -> String {
-        let alphabet = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
-        return String((0 ..< 8).map { _ in alphabet.randomElement() ?? "A" })
-    }
-}
-
-private struct NewPoolRow: Encodable {
-    let ownerUserID: UUID
-    let name: String
-    let inviteCode: String
-    let type: DatabasePoolType
-
-    enum CodingKeys: String, CodingKey {
-        case ownerUserID = "owner_user_id"
-        case name
-        case inviteCode = "invite_code"
-        case type
-    }
 }
 
 private struct JoinPoolParams: Encodable {
@@ -158,18 +131,15 @@ private struct JoinPoolParams: Encodable {
 private struct CreatePoolParams: Encodable {
     let nameInput: String
     let typeInput: DatabasePoolType
-    let inviteCodeInput: String
 
-    init(pool: NewPoolRow) {
-        nameInput = pool.name
-        typeInput = pool.type
-        inviteCodeInput = pool.inviteCode
+    init(request: CreatePoolRequest) {
+        nameInput = request.name
+        typeInput = DatabasePoolType(request.type)
     }
 
     enum CodingKeys: String, CodingKey {
         case nameInput = "name_input"
         case typeInput = "type_input"
-        case inviteCodeInput = "invite_code_input"
     }
 }
 
