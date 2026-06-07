@@ -12,6 +12,8 @@ Bracket 48 is an independent, unofficial app for entertainment with friends. It 
 - Design direction: `docs/DESIGN_DIRECTION.md`
 - Engineering standards: `docs/ENGINEERING_STANDARDS.md`
 - AI development workflow: `docs/AI_DEVELOPMENT_WORKFLOW.md`
+- Production runbook: `docs/PRODUCTION_RUNBOOK.md`
+- Physical device QA: `docs/PHYSICAL_DEVICE_QA.md`
 - Tickets: `tickets/`
 
 ## Current Code
