@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(37);
+select plan(42);
 
 create or replace function pg_temp.login_as(user_id uuid)
 returns void
@@ -340,6 +340,45 @@ insert into public.bracket_score_events (
 set local role authenticated;
 
 select pg_temp.login_as('00000000-0000-4000-8000-000000000101');
+
+create temporary table created_pool_smoke
+on commit drop
+as
+select *
+from public.create_pool('RPC Smoke Pool', 'full_tournament'::public.pool_type);
+
+select is(
+    (select name from created_pool_smoke),
+    'RPC Smoke Pool',
+    'create_pool creates a pool for an authenticated user'
+);
+select ok(
+    (select invite_code from created_pool_smoke) ~ '^[A-F0-9]{12}$',
+    'create_pool generates a valid random invite code'
+);
+select is(
+    (select owner_user_id from created_pool_smoke),
+    '00000000-0000-4000-8000-000000000101'::uuid,
+    'create_pool assigns ownership to auth.uid'
+);
+select is(
+    (
+        select count(*)
+        from public.pool_memberships
+        where pool_id = (select id from created_pool_smoke)
+          and user_id = '00000000-0000-4000-8000-000000000101'
+          and role = 'owner'
+          and status = 'active'
+    ),
+    1::bigint,
+    'create_pool creates an active owner membership'
+);
+select is(
+    (select count(*) from public.pools where id = (select id from created_pool_smoke)),
+    1::bigint,
+    'create_pool result is visible to the owning member'
+);
+
 select is(
     (select count(*) from public.pools where id = '10000000-0000-4000-8000-000000000001'),
     1::bigint,
