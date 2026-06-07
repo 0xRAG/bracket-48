@@ -4,6 +4,7 @@ import Bracket48Core
 struct GroupsTabView: View {
     @Environment(AppModel.self) private var appModel
     @State private var path: [GroupsRoute] = []
+    @State private var didApplyScreenshotRoute = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -18,6 +19,10 @@ struct GroupsTabView: View {
                             if let group = appModel.joinedGroups.first(where: { $0.id == groupID }) {
                                 GroupDetailView(group: group, path: $path)
                             }
+                        case let .winner(groupID):
+                            if let group = appModel.joinedGroups.first(where: { $0.id == groupID }) {
+                                GroupWinnerView(group: group, path: $path)
+                            }
                         case let .bracket(entryID):
                             if let entry = appModel.groupBracketEntriesByGroupID.values.flatMap({ $0 }).first(where: { $0.id == entryID }) {
                                 ReadOnlyGroupBracketView(entry: entry)
@@ -26,11 +31,28 @@ struct GroupsTabView: View {
                     }
             }
         }
+        #if DEBUG
+        .task {
+            guard !didApplyScreenshotRoute,
+                  ProcessInfo.processInfo.arguments.contains("-WCBUseScreenshotFixtures"),
+                  let screenshotScreenIndex = ProcessInfo.processInfo.arguments.firstIndex(of: "-WCBScreenshotScreen"),
+                  ProcessInfo.processInfo.arguments.indices.contains(screenshotScreenIndex + 1),
+                  ProcessInfo.processInfo.arguments[screenshotScreenIndex + 1] == "winner",
+                  let group = appModel.joinedGroups.first
+            else {
+                return
+            }
+
+            didApplyScreenshotRoute = true
+            path = [.winner(group.id)]
+        }
+        #endif
     }
 }
 
 private enum GroupsRoute: Hashable {
     case detail(String)
+    case winner(String)
     case bracket(UUID)
 }
 
@@ -155,7 +177,7 @@ private struct GroupsDashboardView: View {
             await appModel.refreshBackendState()
         }
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
     }
 
     private func entryStatus(for group: JoinedGroup) -> String {
@@ -207,6 +229,8 @@ private struct GroupsDashboardView: View {
 }
 
 private struct PendingInviteCard: View {
+    @Environment(AppModel.self) private var appModel
+
     let invite: PendingInvite
     let isBusy: Bool
     let refreshAction: () -> Void
@@ -218,7 +242,7 @@ private struct PendingInviteCard: View {
             HStack(spacing: 12) {
                 Image(systemName: "link.badge.plus")
                     .frame(width: 32, height: 32)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(appModel.primaryAccentColor.color)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(invite.preview?.name ?? "Group Invite")
@@ -278,6 +302,8 @@ private struct PendingInviteCard: View {
 }
 
 private struct GroupMembershipRow: View {
+    @Environment(AppModel.self) private var appModel
+
     let group: JoinedGroup
     let entryStatus: String
     let leaderboard: [BackendLeaderboardEntry]
@@ -291,7 +317,7 @@ private struct GroupMembershipRow: View {
                 HStack(spacing: 12) {
                     Image(systemName: group.isOwner ? "person.2.fill" : "person.2.badge.plus")
                         .frame(width: 32, height: 32)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(appModel.primaryAccentColor.color)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(group.name)
@@ -334,6 +360,8 @@ private struct GroupMembershipRow: View {
 }
 
 private struct LeaderboardPreview: View {
+    @Environment(AppModel.self) private var appModel
+
     let entries: [BackendLeaderboardEntry]
 
     private var standings: [GroupStandingRow] {
@@ -345,6 +373,7 @@ private struct LeaderboardPreview: View {
             HStack {
                 Label("Leaderboard", systemImage: "list.number")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(appModel.primaryAccentColor.color)
                 Spacer()
                 if !standings.isEmpty {
                     Text("\(standings.count) scored")
@@ -400,6 +429,10 @@ private struct GroupDetailView: View {
         GroupStandingRow.combined(from: appModel.leaderboardsByGroupID[group.id] ?? [])
     }
 
+    private var isComplete: Bool {
+        !standings.isEmpty && standings.allSatisfy { $0.possiblePointsRemaining == 0 && $0.maxPoints > 0 }
+    }
+
     private var bracketEntries: [BackendGroupBracketEntry] {
         appModel.groupBracketEntriesByGroupID[group.id] ?? []
     }
@@ -423,6 +456,17 @@ private struct GroupDetailView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                }
+            }
+
+            if isComplete {
+                Section {
+                    Button {
+                        path.append(.winner(group.id))
+                    } label: {
+                        WinnerEntryCard(standings: standings)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -471,7 +515,7 @@ private struct GroupDetailView: View {
                         HStack {
                             Image(systemName: participant.role == .owner ? "crown.fill" : "person.fill")
                                 .frame(width: 28)
-                                .foregroundStyle(.green)
+                                .foregroundStyle(appModel.primaryAccentColor.color)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(participant.displayName)
                                     .font(.headline)
@@ -499,7 +543,7 @@ private struct GroupDetailView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: entry.bracket.phase == .groupStage ? "square.grid.3x3.fill" : "trophy.fill")
                                     .frame(width: 30, height: 30)
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(appModel.primaryAccentColor.color)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.participantDisplayName)
@@ -527,7 +571,193 @@ private struct GroupDetailView: View {
             await appModel.refreshBackendState()
         }
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
+    }
+}
+
+private struct WinnerEntryCard: View {
+    let standings: [GroupStandingRow]
+
+    private var winners: [GroupStandingRow] {
+        guard let winningScore = standings.first?.totalPoints else {
+            return []
+        }
+
+        return standings.filter { $0.totalPoints == winningScore }
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: winners.count > 1 ? "trophy.fill" : "crown.fill")
+                .font(.title2.weight(.semibold))
+                .frame(width: 42, height: 42)
+                .foregroundStyle(.yellow)
+                .background(.yellow.opacity(0.18), in: Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(winners.count > 1 ? "Final Tie" : "Winner")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(winnerNames)
+                    .font(.headline)
+                if let score = standings.first?.totalPoints {
+                    Text("\(score) final points")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+    }
+
+    private var winnerNames: String {
+        winners.map(\.displayName).joined(separator: ", ")
+    }
+}
+
+private struct GroupWinnerView: View {
+    @Environment(AppModel.self) private var appModel
+
+    let group: JoinedGroup
+    @Binding var path: [GroupsRoute]
+
+    private var standings: [GroupStandingRow] {
+        GroupStandingRow.combined(from: appModel.leaderboardsByGroupID[group.id] ?? [])
+    }
+
+    private var winners: [GroupStandingRow] {
+        guard let winningScore = standings.first?.totalPoints else {
+            return []
+        }
+
+        return standings.filter { $0.totalPoints == winningScore }
+    }
+
+    private var winningEntries: [BackendGroupBracketEntry] {
+        let winnerIDs = Set(winners.map(\.id))
+        return (appModel.groupBracketEntriesByGroupID[group.id] ?? [])
+            .filter { winnerIDs.contains($0.userID) }
+            .sorted {
+                if $0.userID == $1.userID {
+                    return $0.bracket.phase.rawValue < $1.bracket.phase.rawValue
+                }
+
+                return $0.participantDisplayName.localizedCaseInsensitiveCompare($1.participantDisplayName) == .orderedAscending
+            }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 14) {
+                    Image(systemName: winners.count > 1 ? "trophy.fill" : "crown.fill")
+                        .font(.system(size: 46, weight: .bold))
+                        .foregroundStyle(.yellow)
+                        .frame(width: 72, height: 72)
+                        .background(.yellow.opacity(0.18), in: Circle())
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(winners.count > 1 ? "Final Tie" : "Final Winner")
+                            .font(.largeTitle.bold())
+                        Text(winnerNames)
+                            .font(.title2.weight(.semibold))
+                        Text(group.name)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let score = standings.first?.totalPoints,
+                       let maxPoints = standings.first?.maxPoints
+                    {
+                        HStack(spacing: 10) {
+                            Label("\(score)", systemImage: "number")
+                                .font(.headline.monospacedDigit())
+                            Text("/ \(maxPoints) points")
+                                .font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Text("Final standings are locked for bragging rights only. No prizes, rewards, betting, or gambling.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 10)
+            }
+
+            Section("Final Standings") {
+                if standings.isEmpty {
+                    ContentUnavailableView("No Final Scores", systemImage: "trophy")
+                } else {
+                    ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
+                        HStack(spacing: 12) {
+                            Text("\(index + 1)")
+                                .font(.headline.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, alignment: .leading)
+
+                            Text(standing.displayName)
+                                .font(.headline)
+
+                            Spacer()
+
+                            Text("\(standing.totalPoints)")
+                                .font(.headline.monospacedDigit())
+                            Text("/ \(standing.maxPoints)")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            if !winningEntries.isEmpty {
+                Section(winners.count > 1 ? "Winning Brackets" : "Winning Bracket") {
+                    ForEach(winningEntries) { entry in
+                        Button {
+                            path.append(.bracket(entry.id))
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: entry.bracket.phase == .groupStage ? "list.number" : "trophy.fill")
+                                    .frame(width: 30, height: 30)
+                                    .foregroundStyle(entry.bracket.phase == .groupStage ? appModel.primaryAccentColor.color : .yellow)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.participantDisplayName)
+                                        .font(.headline)
+                                    Text(entry.bracket.phase == .groupStage ? "Group-stage picks" : "Knockout picks")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Winner")
+        .scrollContentBackground(.hidden)
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
+    }
+
+    private var winnerNames: String {
+        winners.map(\.displayName).joined(separator: winners.count > 2 ? ", " : " & ")
     }
 }
 
@@ -580,7 +810,7 @@ private struct ReadOnlyGroupBracketView: View {
         }
         .navigationTitle("Bracket")
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
     }
 
     private func team(for teamID: String) -> AppTeam? {

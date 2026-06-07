@@ -89,6 +89,7 @@ struct SignUpView: View {
                 displayName: firstName
             )
             appModel.displayName = user.displayName
+            appModel.primaryColorID = user.primaryColorID
 
             authErrorMessage = nil
             appModel.completeSignUp()

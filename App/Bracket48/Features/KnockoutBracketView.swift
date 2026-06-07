@@ -25,7 +25,7 @@ struct KnockoutBracketView: View {
                 if let champion = appModel.winner(for: "final") {
                     HStack(spacing: 10) {
                         Image(systemName: "trophy.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(appModel.primaryAccentColor.color)
                         Text(champion.flagEmoji)
                         Text(champion.name)
                     }
@@ -51,7 +51,7 @@ struct KnockoutBracketView: View {
             .padding(.bottom, 96)
         }
         .navigationTitle("Knockout")
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
         .safeAreaInset(edge: .bottom) {
             Button {
                 Task {
@@ -122,7 +122,7 @@ private struct KnockoutMatchRow: View {
                             Spacer()
                             if winner == team {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(appModel.primaryAccentColor.color)
                             }
                         } else {
                             Text("Awaiting previous winner")

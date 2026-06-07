@@ -58,5 +58,6 @@ struct RootView: View {
         .task {
             await appModel.hydrateAuthenticatedSession()
         }
+        .tint(appModel.primaryAccentColor.color)
     }
 }

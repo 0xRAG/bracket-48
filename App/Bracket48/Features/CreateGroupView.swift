@@ -49,7 +49,7 @@ struct CreateGroupView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
         .safeAreaInset(edge: .bottom) {
             Button {
                 Task {

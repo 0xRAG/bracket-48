@@ -1,7 +1,7 @@
 # WCB-024: Profile Primary Color Selector
 
-Status: Backlog
-Owner: Unassigned
+Status: Done
+Owner: Codex
 Priority: P3
 Phase: V1
 
@@ -31,11 +31,11 @@ Users can make the app feel a bit more personal while keeping the overall Bracke
 
 ## Acceptance Criteria
 
-- [ ] Profile includes a primary color selector using color swatches.
-- [ ] Green is selected by default for new users.
-- [ ] The selected color updates primary app accents consistently.
-- [ ] The color choice persists after sign out/sign in.
-- [ ] All palette options maintain readable contrast in light and dark mode.
+- [x] Profile includes a primary color selector using color swatches.
+- [x] Green is selected by default for new users.
+- [x] The selected color updates primary app accents consistently.
+- [x] The color choice persists after sign out/sign in.
+- [x] All palette options maintain readable contrast in light and dark mode.
 
 ## Test Expectations
 
@@ -65,3 +65,5 @@ Roles:
 ## Notes
 
 Requested by Ryan after the Groups overview cleanup. Green should remain the default.
+
+Implemented with a constrained `primary_color` profile field, local draft fallback, and Profile swatches for green, purple, blue, yellow, and red. Primary app tint, key icons, and signed-in backgrounds now use the selected accent.

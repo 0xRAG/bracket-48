@@ -17,6 +17,7 @@
 		3FD7CA9C2E33656C2C395093 /* AppBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38C16A643D43C10EB13FD0A /* AppBrand.swift */; };
 		451675D59D7F7B34C6E57EB9 /* SupabaseClientFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187C5C51B26BBE95DC9E57C2 /* SupabaseClientFactory.swift */; };
 		46A52B3ECB024EAB0778741F /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A524E865B35FDB964C42CFE0 /* RootView.swift */; };
+		478B57CB8523057CDED15F35 /* AppAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD830372BD0396E286D8672 /* AppAccentColor.swift */; };
 		4AB4B822AFC962289259F67C /* ScoringGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433EAD7A94E57BACA3F5368E /* ScoringGuideView.swift */; };
 		5815FE603C925ED0178776AF /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341909C28CAF89D93EC5A1EA /* AppConfiguration.swift */; };
 		64CDCA295A80E23533DDC7E6 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB429E5A3807C99E042997E8 /* AppModel.swift */; };
@@ -70,6 +71,7 @@
 		C0DD76720727B428D5CFE114 /* SupabaseBracketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseBracketService.swift; sourceTree = "<group>"; };
 		C1DF295475FF25DDBE7356AC /* Bracket48.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bracket48.entitlements; sourceTree = "<group>"; };
 		CB429E5A3807C99E042997E8 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		CFD830372BD0396E286D8672 /* AppAccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAccentColor.swift; sourceTree = "<group>"; };
 		D38C16A643D43C10EB13FD0A /* AppBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBrand.swift; sourceTree = "<group>"; };
 		E7F40BE8E6576DC2554FF2A3 /* SupabasePoolService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabasePoolService.swift; sourceTree = "<group>"; };
 		EC34E0FE9164558C7E3FEAA3 /* Bracket48.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bracket48.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -103,6 +105,7 @@
 		3A6947B4B4DA4B5F4A534998 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				CFD830372BD0396E286D8672 /* AppAccentColor.swift */,
 				70E91FD005158EB36E0225DA /* AppBackground.swift */,
 				D38C16A643D43C10EB13FD0A /* AppBrand.swift */,
 				C1DF295475FF25DDBE7356AC /* Bracket48.entitlements */,
@@ -261,6 +264,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				478B57CB8523057CDED15F35 /* AppAccentColor.swift in Sources */,
 				6D210BA40A646B6DFDC53E73 /* AppBackground.swift in Sources */,
 				3FD7CA9C2E33656C2C395093 /* AppBrand.swift in Sources */,
 				5815FE603C925ED0178776AF /* AppConfiguration.swift in Sources */,

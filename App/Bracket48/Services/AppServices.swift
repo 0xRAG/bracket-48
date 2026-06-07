@@ -5,6 +5,7 @@ protocol AuthServicing: Sendable {
     func currentUser() async throws -> BackendUserProfile?
     func signInWithApple(idToken: String, nonce: String, displayName: String?) async throws -> BackendUserProfile
     func updateDisplayName(_ displayName: String) async throws -> BackendUserProfile
+    func updatePrimaryColor(_ primaryColorID: String) async throws -> BackendUserProfile
     func signOut() async throws
     func deleteAccount() async throws
 }
@@ -68,6 +69,10 @@ private struct UnconfiguredAuthService: AuthServicing {
     }
 
     func updateDisplayName(_ displayName: String) async throws -> BackendUserProfile {
+        throw BackendServiceError.notConfigured
+    }
+
+    func updatePrimaryColor(_ primaryColorID: String) async throws -> BackendUserProfile {
         throw BackendServiceError.notConfigured
     }
 

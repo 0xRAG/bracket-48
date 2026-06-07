@@ -14,7 +14,7 @@ struct ProfileView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "person.crop.circle.fill")
                         .frame(width: 28, height: 28)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(appModel.primaryAccentColor.color)
 
                     Text("Display Name")
                         .font(.headline)
@@ -75,6 +75,44 @@ struct ProfileView: View {
                 }
             }
 
+            Section("Appearance") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Primary Color")
+                        .font(.headline)
+
+                    HStack(spacing: 14) {
+                        ForEach(AppAccentColor.allCases) { color in
+                            Button {
+                                Task {
+                                    await appModel.updatePrimaryColorRemotely(color)
+                                }
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(color.color)
+                                        .frame(width: 34, height: 34)
+
+                                    if appModel.primaryAccentColor == color {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(color == .yellow ? .black : .white)
+                                    }
+                                }
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(appModel.primaryAccentColor == color ? Color.primary : Color.secondary.opacity(0.35), lineWidth: 2)
+                                )
+                                .accessibilityLabel(color.name)
+                                .accessibilityValue(appModel.primaryAccentColor == color ? "Selected" : "")
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(appModel.isBackendBusy)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
             Section("About") {
                 InfoLine(title: "App", value: AppBrand.name)
                 InfoLine(title: "Purpose", value: "For fun with friends")
@@ -86,7 +124,7 @@ struct ProfileView: View {
         }
         .navigationTitle("Profile")
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
         .onAppear {
             syncProfileDisplayName(from: appModel.displayName)
         }

@@ -87,7 +87,7 @@ struct BracketBuilderView: View {
         }
         .environment(\.editMode, $editMode)
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
         .safeAreaInset(edge: .bottom) {
             if appModel.canEditGroupStageBracket {
                 Button {

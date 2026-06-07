@@ -9,6 +9,7 @@ APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Bracket48.app"
 OUTPUT_DIR="$ROOT_DIR/AppStore/Screenshots"
 
 mkdir -p "$OUTPUT_DIR"
+rm -f "$OUTPUT_DIR"/*.png
 
 xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
 xcrun simctl bootstatus "$DEVICE_ID" -b
@@ -39,6 +40,7 @@ capture "01" "home" "home"
 capture "02" "brackets" "brackets"
 capture "03" "group-bracket" "group-bracket"
 capture "04" "groups" "groups"
-capture "05" "profile" "profile"
+capture "05" "winner" "winner"
+capture "06" "profile" "profile"
 
 echo "Screenshots saved to $OUTPUT_DIR"

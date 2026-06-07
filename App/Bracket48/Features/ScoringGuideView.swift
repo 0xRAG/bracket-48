@@ -2,6 +2,8 @@ import SwiftUI
 import Bracket48Core
 
 struct ScoringGuideView: View {
+    @Environment(AppModel.self) private var appModel
+
     private let rules = ScoringRuleSet.worldCupDefault
 
     var body: some View {
@@ -78,7 +80,7 @@ struct ScoringGuideView: View {
         }
         .navigationTitle("Scoring")
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
     }
 
     private var groupPointsPerGroup: Int {
@@ -107,6 +109,8 @@ struct ScoringGuideView: View {
 }
 
 private struct GuideRow: View {
+    @Environment(AppModel.self) private var appModel
+
     let icon: String
     let title: String
     let detail: String
@@ -115,7 +119,7 @@ private struct GuideRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 28, height: 28)
-                .foregroundStyle(.green)
+                .foregroundStyle(appModel.primaryAccentColor.color)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)

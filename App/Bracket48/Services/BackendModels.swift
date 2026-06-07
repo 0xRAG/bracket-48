@@ -4,6 +4,7 @@ import Bracket48Core
 struct BackendUserProfile: Identifiable, Equatable, Sendable {
     let id: UUID
     let displayName: String
+    let primaryColorID: String
 }
 
 struct BackendPoolSummary: Identifiable, Equatable, Sendable {

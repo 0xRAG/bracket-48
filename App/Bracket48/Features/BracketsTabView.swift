@@ -193,11 +193,13 @@ private struct BracketsDashboardView: View {
             await appModel.refreshBackendState()
         }
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
     }
 }
 
 private struct BracketUnitRow: View {
+    @Environment(AppModel.self) private var appModel
+
     let unit: BracketUnit
     let createKnockoutAction: () -> Void
     let viewGroupAction: () -> Void
@@ -210,7 +212,7 @@ private struct BracketUnitRow: View {
             HStack(spacing: 12) {
                 Image(systemName: "rectangle.stack.fill")
                     .frame(width: 32, height: 32)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(appModel.primaryAccentColor.color)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Tournament Bracket")
@@ -261,6 +263,8 @@ private struct BracketUnitRow: View {
 }
 
 private struct BracketComponentRow: View {
+    @Environment(AppModel.self) private var appModel
+
     let title: String
     let icon: String
     let status: String
@@ -273,7 +277,7 @@ private struct BracketComponentRow: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .frame(width: 26, height: 26)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(appModel.primaryAccentColor.color)
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                 Spacer()
@@ -305,6 +309,8 @@ private struct BracketComponentRow: View {
 }
 
 private struct SavedBracketRow: View {
+    @Environment(AppModel.self) private var appModel
+
     let bracket: BackendBracketSummary
     let viewAction: () -> Void
     let deleteAction: () -> Void
@@ -314,7 +320,7 @@ private struct SavedBracketRow: View {
             HStack(spacing: 12) {
                 Image(systemName: "trophy.fill")
                     .frame(width: 32, height: 32)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(appModel.primaryAccentColor.color)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Knockout Bracket")

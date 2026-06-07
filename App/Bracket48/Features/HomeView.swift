@@ -60,11 +60,13 @@ struct HomeView: View {
         }
         .navigationTitle("Home")
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
     }
 }
 
 private struct InfoRow: View {
+    @Environment(AppModel.self) private var appModel
+
     let icon: String
     let title: String
     let value: String
@@ -73,7 +75,7 @@ private struct InfoRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 28, height: 28)
-                .foregroundStyle(.green)
+                .foregroundStyle(appModel.primaryAccentColor.color)
 
             Text(title)
                 .font(.headline)

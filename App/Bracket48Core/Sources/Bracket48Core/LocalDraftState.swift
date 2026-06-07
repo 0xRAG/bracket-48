@@ -4,6 +4,7 @@ public struct LocalDraftState: Codable, Equatable, Sendable {
     public let schemaVersion: Int
     public let currentScreen: LocalAppScreen
     public let displayName: String
+    public let primaryColorID: String
     public let groupName: String
     public let selectedGroupID: String?
     public let groupStagePredictions: [LocalGroupStagePrediction]
@@ -16,6 +17,7 @@ public struct LocalDraftState: Codable, Equatable, Sendable {
         case schemaVersion
         case currentScreen
         case displayName
+        case primaryColorID
         case groupName
         case selectedGroupID
         case groupStagePredictions
@@ -29,6 +31,7 @@ public struct LocalDraftState: Codable, Equatable, Sendable {
         schemaVersion: Int = Self.currentSchemaVersion,
         currentScreen: LocalAppScreen,
         displayName: String,
+        primaryColorID: String = "green",
         groupName: String,
         selectedGroupID: String?,
         groupStagePredictions: [LocalGroupStagePrediction],
@@ -40,6 +43,7 @@ public struct LocalDraftState: Codable, Equatable, Sendable {
         self.schemaVersion = schemaVersion
         self.currentScreen = currentScreen
         self.displayName = displayName
+        self.primaryColorID = primaryColorID
         self.groupName = groupName
         self.selectedGroupID = selectedGroupID
         self.groupStagePredictions = groupStagePredictions
@@ -54,6 +58,7 @@ public struct LocalDraftState: Codable, Equatable, Sendable {
         schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
         currentScreen = try container.decode(LocalAppScreen.self, forKey: .currentScreen)
         displayName = try container.decode(String.self, forKey: .displayName)
+        primaryColorID = try container.decodeIfPresent(String.self, forKey: .primaryColorID) ?? "green"
         groupName = try container.decode(String.self, forKey: .groupName)
         selectedGroupID = try container.decodeIfPresent(String.self, forKey: .selectedGroupID)
         groupStagePredictions = try container.decode([LocalGroupStagePrediction].self, forKey: .groupStagePredictions)

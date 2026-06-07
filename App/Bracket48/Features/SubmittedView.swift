@@ -10,7 +10,7 @@ struct SubmittedView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.seal.fill")
                         .font(.system(size: 56, weight: .semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(appModel.primaryAccentColor.color)
 
                     Text("Group Bracket")
                         .font(.largeTitle.bold())
@@ -61,6 +61,6 @@ struct SubmittedView: View {
         }
         .navigationTitle("Group Bracket")
         .scrollContentBackground(.hidden)
-        .background(AppBackground())
+        .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
     }
 }

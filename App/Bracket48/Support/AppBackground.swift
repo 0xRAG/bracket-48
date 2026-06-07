@@ -1,11 +1,13 @@
 import SwiftUI
 
 struct AppBackground: View {
+    var accentColor: Color = .green
+
     var body: some View {
         LinearGradient(
             colors: [
                 Color(.systemBackground),
-                Color.green.opacity(0.10),
+                accentColor.opacity(0.10),
                 Color(.secondarySystemBackground)
             ],
             startPoint: .top,

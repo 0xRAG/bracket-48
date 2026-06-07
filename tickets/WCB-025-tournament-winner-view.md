@@ -1,7 +1,7 @@
 # WCB-025: Tournament Winner View
 
-Status: Backlog
-Owner: Unassigned
+Status: Done
+Owner: Codex
 Priority: P2
 Phase: V1
 
@@ -29,11 +29,11 @@ Players get a satisfying end state for the competition, can see who won bragging
 
 ## Acceptance Criteria
 
-- [ ] Completed groups show a winner/final standings entry point.
-- [ ] Winner view identifies the winning player or tied winners.
-- [ ] Final leaderboard is frozen after tournament scoring is complete.
-- [ ] Empty or incomplete groups do not show a misleading winner state.
-- [ ] The view is visually distinct from the live standings state.
+- [x] Completed groups show a winner/final standings entry point.
+- [x] Winner view identifies the winning player or tied winners.
+- [x] Final leaderboard is frozen after tournament scoring is complete.
+- [x] Empty or incomplete groups do not show a misleading winner state.
+- [x] The view is visually distinct from the live standings state.
 
 ## Test Expectations
 
@@ -63,3 +63,5 @@ Roles:
 ## Notes
 
 Requested by Ryan as an end-of-tournament experience.
+
+Implemented a completed-group entry point when scored standings have no points remaining, plus a dedicated Winner screen with final winner/tie state, final leaderboard, winning bracket links, and the no-prizes entertainment disclaimer. Screenshot fixtures now include a completed tournament winner route.

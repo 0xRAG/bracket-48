@@ -29,6 +29,7 @@ final class AppModel {
     var backendStatusMessage: String?
     var isBackendBusy = false
     var displayName = ""
+    var primaryColorID = AppAccentColor.green.rawValue
     var groupName = ""
     var selectedGroupID: String?
     var predictions: [GroupStagePredictionDraft]
@@ -86,6 +87,7 @@ final class AppModel {
         LocalDraftState(
             currentScreen: step.localScreen,
             displayName: displayName,
+            primaryColorID: primaryColorID,
             groupName: groupName,
             selectedGroupID: selectedGroupID,
             groupStagePredictions: predictions.map(\.localPrediction),
@@ -121,6 +123,10 @@ final class AppModel {
     var firstName: String {
         let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "there" : trimmed.components(separatedBy: " ").first ?? trimmed
+    }
+
+    var primaryAccentColor: AppAccentColor {
+        AppAccentColor.normalized(primaryColorID)
     }
 
     var canContinueFromSignUp: Bool {
@@ -271,6 +277,12 @@ final class AppModel {
 
     @MainActor
     func hydrateAuthenticatedSession() async {
+        #if DEBUG
+        guard !ProcessInfo.processInfo.arguments.contains("-WCBUseScreenshotFixtures") else {
+            return
+        }
+        #endif
+
         guard isLiveBackendConfigured else {
             return
         }
@@ -297,8 +309,10 @@ final class AppModel {
             {
                 let repairedProfile = try await services.auth.updateDisplayName(localDisplayName)
                 displayName = repairedProfile.displayName
+                primaryColorID = repairedProfile.primaryColorID
             } else {
                 displayName = profile.displayName
+                primaryColorID = profile.primaryColorID
             }
 
             if step == .signUp {
@@ -747,6 +761,19 @@ final class AppModel {
         await runBackendOperation(successMessage: "Display name saved.") {
             let profile = try await services.auth.updateDisplayName(trimmedName)
             displayName = profile.displayName
+            primaryColorID = profile.primaryColorID
+            persist()
+        }
+    }
+
+    @MainActor
+    func updatePrimaryColorRemotely(_ color: AppAccentColor) async {
+        primaryColorID = color.rawValue
+        persist()
+
+        await runBackendOperation(successMessage: nil) {
+            let profile = try await services.auth.updatePrimaryColor(color.rawValue)
+            primaryColorID = profile.primaryColorID
             persist()
         }
     }
@@ -767,6 +794,7 @@ final class AppModel {
 
     private func restore(_ state: LocalDraftState) {
         displayName = state.displayName
+        primaryColorID = state.primaryColorID
         groupName = state.submittedEntry == nil ? state.groupName : ""
         selectedGroupID = state.selectedGroupID
         predictions = restoredPredictions(from: state.groupStagePredictions)
@@ -868,6 +896,7 @@ final class AppModel {
 
     private func resetForSignedOutUser() {
         displayName = ""
+        primaryColorID = AppAccentColor.green.rawValue
         groupName = ""
         selectedGroupID = nil
         predictions = Self.defaultPredictions(groups: groups)
@@ -1078,10 +1107,11 @@ final class AppModel {
         }
 
         displayName = "Ryan"
+        primaryColorID = AppAccentColor.green.rawValue
         groupName = ""
         selectedGroupID = "screenshot-group-1"
         joinedGroups = [
-            JoinedGroup(id: "screenshot-group-1", name: "Saturday Crew", inviteCode: "BRKT48", isOwner: true),
+            JoinedGroup(id: "screenshot-group-1", name: "Saturday Crew", inviteCode: "BRKT48", isOwner: true, entryPhases: [.groupStage, .knockout]),
             JoinedGroup(id: "screenshot-group-2", name: "Office Picks", inviteCode: "OFFICE", isOwner: false)
         ]
         predictions = Self.defaultPredictions(groups: groups).map { prediction in
@@ -1097,8 +1127,31 @@ final class AppModel {
             displayName: displayName,
             predictions: predictions
         )
-        knockoutPicks = []
-        submittedKnockoutEntry = nil
+        let screenshotWinner = groups.first?.teams.first
+        let screenshotKnockoutPicks = knockoutBracket.matches.compactMap { match -> BackendKnockoutPick? in
+            guard let screenshotWinner else {
+                return nil
+            }
+
+            return BackendKnockoutPick(
+                matchID: match.id,
+                round: match.round,
+                pickedWinnerTeamID: screenshotWinner.id
+            )
+        }
+        knockoutPicks = screenshotKnockoutPicks.compactMap { pick in
+            guard let team = screenshotWinner else {
+                return nil
+            }
+
+            return KnockoutPickDraft(matchID: pick.matchID, round: pick.round, pickedWinner: team)
+        }
+        submittedKnockoutEntry = SubmittedKnockoutEntry(
+            backendID: UUID(uuidString: "22222222-2222-2222-2222-222222222222"),
+            groupName: SubmittedEntry.standaloneGroupName,
+            displayName: displayName,
+            picks: knockoutPicks
+        )
         backendBrackets = [
             BackendBracketSummary(
                 id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
@@ -1115,7 +1168,113 @@ final class AppModel {
                     )
                 },
                 knockoutPicks: []
+            ),
+            BackendBracketSummary(
+                id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
+                phase: .knockout,
+                displayName: displayName,
+                submittedAt: Date(timeIntervalSince1970: 1_780_880_400),
+                groupStageBracketID: UUID(uuidString: "11111111-1111-1111-1111-111111111111"),
+                linkedPoolIDs: [],
+                groupStagePredictions: [],
+                knockoutPicks: screenshotKnockoutPicks
             )
+        ]
+        leaderboardsByGroupID = [
+            "screenshot-group-1": [
+                BackendLeaderboardEntry(
+                    id: UUID(uuidString: "aaaaaaaa-1111-1111-1111-111111111111")!,
+                    poolID: UUID(uuidString: "99999999-1111-1111-1111-111111111111")!,
+                    bracketID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                    userID: UUID(uuidString: "88888888-1111-1111-1111-111111111111")!,
+                    displayName: "Ryan",
+                    phase: .groupStage,
+                    groupStagePoints: 132,
+                    knockoutPoints: 0,
+                    totalPoints: 132,
+                    maxPoints: 168,
+                    possiblePointsRemaining: 0,
+                    calculatedAt: Date(timeIntervalSince1970: 1_785_024_000)
+                ),
+                BackendLeaderboardEntry(
+                    id: UUID(uuidString: "aaaaaaaa-2222-2222-2222-222222222222")!,
+                    poolID: UUID(uuidString: "99999999-1111-1111-1111-111111111111")!,
+                    bracketID: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
+                    userID: UUID(uuidString: "88888888-1111-1111-1111-111111111111")!,
+                    displayName: "Ryan",
+                    phase: .knockout,
+                    groupStagePoints: 0,
+                    knockoutPoints: 84,
+                    totalPoints: 84,
+                    maxPoints: 100,
+                    possiblePointsRemaining: 0,
+                    calculatedAt: Date(timeIntervalSince1970: 1_785_024_000)
+                ),
+                BackendLeaderboardEntry(
+                    id: UUID(uuidString: "bbbbbbbb-1111-1111-1111-111111111111")!,
+                    poolID: UUID(uuidString: "99999999-1111-1111-1111-111111111111")!,
+                    bracketID: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
+                    userID: UUID(uuidString: "77777777-1111-1111-1111-111111111111")!,
+                    displayName: "Maya",
+                    phase: .groupStage,
+                    groupStagePoints: 128,
+                    knockoutPoints: 0,
+                    totalPoints: 128,
+                    maxPoints: 168,
+                    possiblePointsRemaining: 0,
+                    calculatedAt: Date(timeIntervalSince1970: 1_785_024_000)
+                ),
+                BackendLeaderboardEntry(
+                    id: UUID(uuidString: "bbbbbbbb-2222-2222-2222-222222222222")!,
+                    poolID: UUID(uuidString: "99999999-1111-1111-1111-111111111111")!,
+                    bracketID: UUID(uuidString: "44444444-4444-4444-4444-444444444444")!,
+                    userID: UUID(uuidString: "77777777-1111-1111-1111-111111111111")!,
+                    displayName: "Maya",
+                    phase: .knockout,
+                    groupStagePoints: 0,
+                    knockoutPoints: 70,
+                    totalPoints: 70,
+                    maxPoints: 100,
+                    possiblePointsRemaining: 0,
+                    calculatedAt: Date(timeIntervalSince1970: 1_785_024_000)
+                )
+            ]
+        ]
+        groupParticipantsByGroupID = [
+            "screenshot-group-1": [
+                BackendGroupParticipant(
+                    id: UUID(uuidString: "88888888-1111-1111-1111-111111111111")!,
+                    displayName: "Ryan",
+                    role: .owner,
+                    joinedAt: Date(timeIntervalSince1970: 1_780_876_800)
+                ),
+                BackendGroupParticipant(
+                    id: UUID(uuidString: "77777777-1111-1111-1111-111111111111")!,
+                    displayName: "Maya",
+                    role: .member,
+                    joinedAt: Date(timeIntervalSince1970: 1_780_876_800)
+                )
+            ]
+        ]
+        groupBracketEntriesByGroupID = [
+            "screenshot-group-1": [
+                BackendGroupBracketEntry(
+                    id: UUID(uuidString: "66666666-1111-1111-1111-111111111111")!,
+                    poolID: UUID(uuidString: "99999999-1111-1111-1111-111111111111")!,
+                    userID: UUID(uuidString: "88888888-1111-1111-1111-111111111111")!,
+                    participantDisplayName: "Ryan",
+                    bracket: backendBrackets[0],
+                    submittedAt: Date(timeIntervalSince1970: 1_780_876_800)
+                ),
+                BackendGroupBracketEntry(
+                    id: UUID(uuidString: "66666666-2222-2222-2222-222222222222")!,
+                    poolID: UUID(uuidString: "99999999-1111-1111-1111-111111111111")!,
+                    userID: UUID(uuidString: "88888888-1111-1111-1111-111111111111")!,
+                    participantDisplayName: "Ryan",
+                    bracket: backendBrackets[1],
+                    submittedAt: Date(timeIntervalSince1970: 1_780_880_400)
+                )
+            ]
         ]
 
         selectedTab = .home
@@ -1129,6 +1288,9 @@ final class AppModel {
                 selectedTab = .brackets
                 step = .home
             case "groups":
+                selectedTab = .groups
+                step = .home
+            case "winner":
                 selectedTab = .groups
                 step = .home
             case "profile":

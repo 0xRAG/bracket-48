@@ -29,7 +29,7 @@ actor SupabaseAuthService: AuthServicing {
         }
 
         let displayName = user.providerDisplayName ?? "Player"
-        return try await saveProfile(AppUserRow(id: user.id, displayName: displayName))
+        return try await saveProfile(AppUserRow(id: user.id, displayName: displayName, primaryColorID: "green"))
     }
 
     func signInWithApple(idToken: String, nonce: String, displayName: String?) async throws -> BackendUserProfile {
@@ -51,15 +51,19 @@ actor SupabaseAuthService: AuthServicing {
                 return existingProfile
             }
 
-            return try await saveProfile(AppUserRow(id: session.user.id, displayName: discoveredDisplayName))
+            return try await saveProfile(AppUserRow(
+                id: session.user.id,
+                displayName: discoveredDisplayName,
+                primaryColorID: existingProfile.primaryColorID
+            ))
         }
 
         guard let discoveredDisplayName else {
-            let profile = AppUserRow(id: session.user.id, displayName: "Player")
+            let profile = AppUserRow(id: session.user.id, displayName: "Player", primaryColorID: "green")
             return try await saveProfile(profile)
         }
 
-        let profile = AppUserRow(id: session.user.id, displayName: discoveredDisplayName)
+        let profile = AppUserRow(id: session.user.id, displayName: discoveredDisplayName, primaryColorID: "green")
         return try await saveProfile(profile)
     }
 
@@ -68,7 +72,27 @@ actor SupabaseAuthService: AuthServicing {
             throw BackendServiceError.notAuthenticated
         }
 
-        let profile = AppUserRow(id: user.id, displayName: displayName.normalizedDisplayName)
+        let existingProfile = try await profile(userID: user.id)
+        let profile = AppUserRow(
+            id: user.id,
+            displayName: displayName.normalizedDisplayName,
+            primaryColorID: existingProfile?.primaryColorID ?? "green"
+        )
+
+        return try await saveProfile(profile)
+    }
+
+    func updatePrimaryColor(_ primaryColorID: String) async throws -> BackendUserProfile {
+        guard let user = client.auth.currentUser else {
+            throw BackendServiceError.notAuthenticated
+        }
+
+        let existingProfile = try await profile(userID: user.id)
+        let profile = AppUserRow(
+            id: user.id,
+            displayName: existingProfile?.displayName ?? user.providerDisplayName ?? "Player",
+            primaryColorID: AppAccentColor.normalized(primaryColorID).rawValue
+        )
 
         return try await saveProfile(profile)
     }
@@ -114,14 +138,16 @@ actor SupabaseAuthService: AuthServicing {
 private struct AppUserRow: Codable, Sendable {
     let id: UUID
     let displayName: String
+    let primaryColorID: String
 
     enum CodingKeys: String, CodingKey {
         case id
         case displayName = "display_name"
+        case primaryColorID = "primary_color"
     }
 
     var profile: BackendUserProfile {
-        BackendUserProfile(id: id, displayName: displayName)
+        BackendUserProfile(id: id, displayName: displayName, primaryColorID: primaryColorID)
     }
 }
 
