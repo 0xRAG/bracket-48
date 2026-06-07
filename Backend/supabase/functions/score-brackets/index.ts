@@ -94,7 +94,7 @@ Deno.serve(async (request) => {
   }
 
   if (request.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed." }, 405);
+    return errorResponse("method_not_allowed", "Method not allowed.", 405);
   }
 
   const supabaseURL = Deno.env.get("SUPABASE_URL");
@@ -102,7 +102,7 @@ Deno.serve(async (request) => {
   const syncSecret = Deno.env.get(syncSecretName);
 
   if (!supabaseURL || !serviceRoleKey) {
-    return jsonResponse({ error: "Scoring is not configured." }, 500);
+    return errorResponse("scoring_not_configured", "Scoring is not configured.", 500);
   }
 
   const authorization = request.headers.get("Authorization");
@@ -111,7 +111,7 @@ Deno.serve(async (request) => {
     || (!!syncSecret && providedSyncSecret === syncSecret);
 
   if (!isAuthorized) {
-    return jsonResponse({ error: "Unauthorized." }, 401);
+    return errorResponse("unauthorized", "Unauthorized.", 401);
   }
 
   const body = await safeJSON(request);
@@ -144,7 +144,8 @@ Deno.serve(async (request) => {
       scores,
     });
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
+    logError("score-brackets.score", error);
+    return errorResponse("scoring_failed", "Scoring failed. Please try again.", 500);
   }
 });
 
@@ -651,4 +652,15 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
       "Content-Type": "application/json",
     },
   });
+}
+
+function errorResponse(errorCode: string, message: string, status: number): Response {
+  return jsonResponse({ error: message, error_code: errorCode }, status);
+}
+
+function logError(scope: string, error: unknown): void {
+  console.error(JSON.stringify({
+    scope,
+    message: error instanceof Error ? error.message : String(error),
+  }));
 }

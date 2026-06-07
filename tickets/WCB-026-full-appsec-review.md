@@ -75,3 +75,5 @@ Requested by Ryan as a full AppSec review of frontend, backend, auth, and public
 2026-06-07: Started review, ran Supabase database advisors, inspected live RLS/RPC grants, reviewed Edge Functions, public site, invite link handling, local persistence, and app configuration. Added `011_harden_rpc_surface.sql` to close initial RPC exposure findings.
 
 2026-06-07: Added pgTAP RLS authorization tests for owner/member/non-member/anon visibility and entry behavior. The test exposed infinite recursion in the pool entry insert policy, fixed by `012_fix_pool_entry_insert_rls_recursion.sql`, and was verified against the linked database through a rollback-only query run.
+
+2026-06-07: Sanitized production-facing Edge Function errors for account deletion, scoring, and Sportmonks sync. Deployed all three functions and restricted `provider_sync_runs` from authenticated client reads with `013_restrict_provider_sync_runs.sql`.

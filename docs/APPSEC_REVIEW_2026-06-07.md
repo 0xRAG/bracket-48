@@ -137,16 +137,23 @@ Affected:
 - `Backend/supabase/functions/sync-sportmonks-results/index.ts`
 - `Backend/supabase/functions/score-brackets/index.ts`
 - `App/Bracket48/AppModel.swift`
+- `Backend/supabase/migrations/013_restrict_provider_sync_runs.sql`
 
 Risk:
 
 Several backend paths return raw exception or provider messages. This helps development, but production error messages can reveal implementation details, provider response bodies, or database failures.
 
-Recommendation:
+Action Taken:
 
-- Return stable user-safe error codes/messages.
-- Log detailed errors server-side.
-- Keep development diagnostics behind non-production flags.
+- Updated Edge Functions to return stable `error_code` values and user-safe messages.
+- Kept detailed diagnostics in Supabase function logs through `console.error`.
+- Deployed `delete-account`, `score-brackets`, and `sync-sportmonks-results`.
+- Removed the authenticated read policy from `provider_sync_runs`, which stores operational sync status and raw error detail.
+- Smoke-tested unauthorized `score-brackets` and `sync-sportmonks-results` responses after deploy.
+
+Follow-Up:
+
+- Consider narrowing CORS on operational functions separately from error sanitization.
 
 ### P2: Local Draft Data Is Stored In UserDefaults
 
@@ -223,6 +230,5 @@ Before App Store submission, close or explicitly accept these:
 
 - Extend backend authorization tests to cover deleted-user cascades.
 - Rotate `SYNC_RESULTS_SECRET`.
-- Sanitize production-facing Edge Function errors.
 - Confirm account deletion still works after hardening.
 - Re-test invite link flows on physical device after the migration.

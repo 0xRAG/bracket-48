@@ -170,13 +170,29 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   });
 }
 
+function errorResponse(
+  errorCode: string,
+  message: string,
+  status: number,
+  extra: Record<string, unknown> = {},
+): Response {
+  return jsonResponse({ error: message, error_code: errorCode, ...extra }, status);
+}
+
+function logError(scope: string, error: unknown): void {
+  console.error(JSON.stringify({
+    scope,
+    message: error instanceof Error ? error.message : String(error),
+  }));
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   if (request.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed." }, 405);
+    return errorResponse("method_not_allowed", "Method not allowed.", 405);
   }
 
   const supabaseURL = Deno.env.get("SUPABASE_URL");
@@ -184,7 +200,7 @@ Deno.serve(async (request) => {
   const sportmonksToken = Deno.env.get("SPORTMONKS_API_TOKEN");
 
   if (!supabaseURL || !serviceRoleKey || !sportmonksToken) {
-    return jsonResponse({ error: "Sportmonks sync is not configured." }, 500);
+    return errorResponse("sportmonks_sync_not_configured", "Results sync is not configured.", 500);
   }
 
   const syncSecret = Deno.env.get("SYNC_RESULTS_SECRET");
@@ -194,7 +210,7 @@ Deno.serve(async (request) => {
     || (!!syncSecret && providedSyncSecret === syncSecret);
 
   if (!isAuthorized) {
-    return jsonResponse({ error: "Unauthorized." }, 401);
+    return errorResponse("unauthorized", "Unauthorized.", 401);
   }
 
   const body = await safeJSON(request);
@@ -219,7 +235,8 @@ Deno.serve(async (request) => {
     .single();
 
   if (runError || !run?.id) {
-    return jsonResponse({ error: runError?.message ?? "Could not create sync run." }, 500);
+    logError("sync-sportmonks-results.create-run", runError ?? "Missing sync run id.");
+    return errorResponse("sync_run_create_failed", "Results sync could not start.", 500);
   }
 
   try {
@@ -252,6 +269,7 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    logError("sync-sportmonks-results.sync", error);
     await adminClient
       .from("provider_sync_runs")
       .update({
@@ -261,7 +279,9 @@ Deno.serve(async (request) => {
       })
       .eq("id", run.id);
 
-    return jsonResponse({ error: message, sync_run_id: run.id }, 500);
+    return errorResponse("results_sync_failed", "Results sync failed. Please try again.", 500, {
+      sync_run_id: run.id,
+    });
   }
 });
 
@@ -281,8 +301,7 @@ async function invokeScoring(supabaseURL: string): Promise<boolean> {
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Scoring failed after sync: ${body}`);
+    throw new Error(`Scoring failed after sync with status ${response.status}.`);
   }
 
   return true;
