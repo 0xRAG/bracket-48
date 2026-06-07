@@ -1,4 +1,8 @@
-.PHONY: generate format lint test test-functions test-backend test-backend-linked test-backend-linked-query hosted-dress-rehearsal build-ios ci tickets
+.PHONY: generate format lint test test-functions test-backend test-backend-linked test-backend-linked-query hosted-dress-rehearsal build-ios archive-ios upload-ios ci tickets
+
+ARCHIVE_PATH ?= Build/Archives/Bracket48.xcarchive
+EXPORT_PATH ?= Build/Export
+APP_STORE_EXPORT_OPTIONS ?= BuildSupport/ExportOptions.app-store-connect.plist
 
 generate:
 	xcodegen generate
@@ -31,6 +35,12 @@ hosted-dress-rehearsal:
 
 build-ios: generate
 	xcodebuild -project Bracket48.xcodeproj -scheme Bracket48 -destination 'generic/platform=iOS Simulator' build
+
+archive-ios: generate
+	xcodebuild -project Bracket48.xcodeproj -scheme Bracket48 -configuration Release -destination 'generic/platform=iOS' -archivePath "$(ARCHIVE_PATH)" archive
+
+upload-ios:
+	xcodebuild -exportArchive -archivePath "$(ARCHIVE_PATH)" -exportPath "$(EXPORT_PATH)" -exportOptionsPlist "$(APP_STORE_EXPORT_OPTIONS)" -allowProvisioningUpdates
 
 ci: lint test test-functions test-backend build-ios
 

@@ -70,3 +70,4 @@ Roles:
 
 - Public pages are deployed at `https://bracket48.app/`.
 - GitHub Pages is currently configured in legacy `gh-pages` branch mode; public site changes must be published to `gh-pages` until Pages is switched to GitHub Actions mode.
+- 2026-06-07: Added `make archive-ios`, `make upload-ios`, App Store Connect export options, and `docs/APP_STORE_SUBMISSION.md`. A local Release archive succeeds at `Build/Archives/Bracket48.xcarchive`; upload is blocked until the App Store Connect app record exists for bundle ID `app.bracket48.Bracket48`.

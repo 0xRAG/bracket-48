@@ -13,6 +13,7 @@ Bracket 48 is an independent, unofficial app for entertainment with friends. It 
 - Engineering standards: `docs/ENGINEERING_STANDARDS.md`
 - AI development workflow: `docs/AI_DEVELOPMENT_WORKFLOW.md`
 - Production runbook: `docs/PRODUCTION_RUNBOOK.md`
+- App Store submission: `docs/APP_STORE_SUBMISSION.md`
 - Physical device QA: `docs/PHYSICAL_DEVICE_QA.md`
 - Tickets: `tickets/`
 
