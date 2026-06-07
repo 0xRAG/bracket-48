@@ -41,7 +41,7 @@ Recommended starting structure:
 ├── Backend/
 ├── docs/
 ├── tickets/
-├── WORLD_CUP_BRACKET_APP_PLAN.md
+├── BRACKET_48_APP_PLAN.md
 ├── .swiftlint.yml
 ├── .swiftformat
 └── Makefile

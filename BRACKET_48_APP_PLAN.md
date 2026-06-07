@@ -1,10 +1,10 @@
-# World Cup Bracket App Plan
+# Bracket 48 App Plan
 
 ## Product Summary
 
-Build a native iOS app for World Cup bracket pools. Users sign in with Apple, join groups, make predictions across two tournament phases, and compete on leaderboards using a scoring system tailored to the 2026 World Cup format.
+Build a native iOS app for tournament bracket groups. Users sign in with Apple, join groups, make predictions across two tournament phases, and compete on leaderboards using a scoring system tailored to a 48-team international soccer tournament format.
 
-The app should feel similar to an NCAA March Madness pool, but adapted for the World Cup's expanded structure:
+The app should feel like a familiar bracket pool, adapted for an expanded tournament structure:
 
 - 48 teams
 - 12 groups of 4
@@ -91,7 +91,7 @@ Recommended lock behavior:
 ### 4. Submit Group-Stage Picks
 
 1. User opens the group-stage prediction flow.
-2. User reviews each World Cup group.
+2. User reviews each tournament group.
 3. User selects expected winner, runner-up, and third-place finisher.
 4. User marks whether the third-place team advances.
 5. User reviews all picks.
@@ -237,7 +237,7 @@ The data model is relational, so PostgreSQL is a strong fit.
 - id
 - name
 - countryCode
-- fifaCode
+- federationCode
 - groupId
 - seed
 

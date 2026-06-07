@@ -8,7 +8,7 @@ Bracket 48 is an independent, unofficial app for entertainment with friends. It 
 
 ## Current Docs
 
-- Product plan: `WORLD_CUP_BRACKET_APP_PLAN.md`
+- Product plan: `BRACKET_48_APP_PLAN.md`
 - Design direction: `docs/DESIGN_DIRECTION.md`
 - Engineering standards: `docs/ENGINEERING_STANDARDS.md`
 - AI development workflow: `docs/AI_DEVELOPMENT_WORKFLOW.md`
