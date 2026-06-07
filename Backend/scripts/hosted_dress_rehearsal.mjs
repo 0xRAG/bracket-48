@@ -48,6 +48,18 @@ async function main() {
     const verification = await supabaseQueryFile("supabase/tests/hosted_dress_rehearsal_verify.sql", "json");
     assertVerification(JSON.parse(verification).rows);
     console.log("Verified persisted leaderboard totals, possible points, and score-event counts.");
+
+    await scoreDatabasePool(secrets);
+    await assertKnockoutTotals([
+      { pool_entry_id: "90000000-0000-4000-8000-000000000402", total_points: 4 },
+      { pool_entry_id: "90000000-0000-4000-8000-000000000404", total_points: 4 },
+    ]);
+    await applyResultOverride(secrets);
+    await assertKnockoutTotals([
+      { pool_entry_id: "90000000-0000-4000-8000-000000000402", total_points: 0 },
+      { pool_entry_id: "90000000-0000-4000-8000-000000000404", total_points: 0 },
+    ]);
+    console.log("Verified admin result override applies and refreshes scoped scores.");
   } finally {
     if (keepSeedData) {
       console.log("Leaving hosted dress rehearsal data in place because --keep was provided.");
@@ -90,6 +102,72 @@ async function score(secrets, dryRun) {
     throw new Error(`score-brackets returned ${response.status}: ${JSON.stringify(body)}`);
   }
   return body;
+}
+
+async function scoreDatabasePool(secrets) {
+  const response = await fetch(`${secrets.project_url}/functions/v1/score-brackets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-sync-secret": secrets.sync_secret,
+    },
+    body: JSON.stringify({
+      dry_run: false,
+      pool_id: poolID,
+    }),
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    throw new Error(`database score-brackets returned ${response.status}: ${JSON.stringify(body)}`);
+  }
+  if (body.scored !== true || body.result_source !== "database" || body.score_count !== 4) {
+    throw new Error(`Unexpected database scoring response: ${JSON.stringify(body)}`);
+  }
+  return body;
+}
+
+async function applyResultOverride(secrets) {
+  const response = await fetch(`${secrets.project_url}/functions/v1/apply-result-override`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-sync-secret": secrets.sync_secret,
+    },
+    body: JSON.stringify({
+      match_id: "dress-r32-1",
+      corrected_status: "final",
+      corrected_home_score: 0,
+      corrected_away_score: 1,
+      corrected_winner_team_id: "mex",
+      reason: "Dress rehearsal winner correction.",
+      scoring_pool_id: poolID,
+    }),
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    throw new Error(`apply-result-override returned ${response.status}: ${JSON.stringify(body)}`);
+  }
+  if (body.overridden !== true || body.match_id !== "dress-r32-1" || body.scoring_invoked !== true) {
+    throw new Error(`Unexpected override response: ${JSON.stringify(body)}`);
+  }
+  return body;
+}
+
+async function assertKnockoutTotals(expectedRows) {
+  const output = await supabaseQuery(
+    "select pool_entry_id, total_points from public.bracket_scores " +
+      `where pool_id = '${poolID}' and phase = 'knockout' ` +
+      "order by pool_entry_id;",
+    "json",
+  );
+  const actual = JSON.parse(output).rows.map((row) => ({
+    pool_entry_id: row.pool_entry_id,
+    total_points: row.total_points,
+  }));
+
+  if (JSON.stringify(actual) !== JSON.stringify(expectedRows)) {
+    throw new Error(`Unexpected knockout score totals: ${JSON.stringify(actual)}.`);
+  }
 }
 
 function assertScoreResponse(body, dryRun) {

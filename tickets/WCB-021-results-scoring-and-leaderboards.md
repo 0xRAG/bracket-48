@@ -1,6 +1,6 @@
 # WCB-021: Results Scoring And Leaderboards
 
-Status: In Progress
+Status: Done
 Owner: Codex
 Priority: P1
 Phase: MVP
@@ -35,7 +35,7 @@ Players can see live standings in each group and compare bracket scores as the t
 - [x] Scores are persisted by pool entry and phase.
 - [x] Score events explain why points were awarded.
 - [x] Group leaderboards sort by total points with deterministic tie handling.
-- [ ] Admin result overrides cause affected scores to refresh.
+- [x] Admin result overrides cause affected scores to refresh.
 
 ## Implementation Notes
 
@@ -75,3 +75,5 @@ Roles:
 ## Confidence Work
 
 Added shared Edge Function scoring tests in `Backend/supabase/functions/_shared/scoring_test.ts` and deployed the refactored `score-brackets` function against the tested shared scoring module.
+
+2026-06-07: Added the protected `apply-result-override` Edge Function. It deactivates previous active overrides for a match, inserts an audit row in `result_overrides`, applies the corrected result to `tournament_matches`, and invokes persisted scoring. `sync-sportmonks-results` now reapplies active overrides after provider fixture upserts so later syncs do not erase admin corrections. Hosted dress rehearsal verifies the override path refreshes scoped scores.

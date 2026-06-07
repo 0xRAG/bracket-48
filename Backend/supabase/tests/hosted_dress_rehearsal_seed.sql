@@ -171,4 +171,38 @@ values
         now() - interval '3 minutes'
     );
 
+insert into public.tournament_matches (
+    id,
+    provider_name,
+    provider_fixture_id,
+    season_id,
+    phase,
+    knockout_round,
+    match_number,
+    fixture_name,
+    home_team_id,
+    away_team_id,
+    status,
+    home_score,
+    away_score,
+    winner_team_id,
+    raw_payload
+) values (
+    'dress-r32-1',
+    'sportmonks',
+    9000000001,
+    26618,
+    'knockout',
+    'round_of_32',
+    1,
+    'Dress Round of 32',
+    'usa',
+    'mex',
+    'final',
+    1,
+    0,
+    'usa',
+    '{}'::jsonb
+);
+
 commit;

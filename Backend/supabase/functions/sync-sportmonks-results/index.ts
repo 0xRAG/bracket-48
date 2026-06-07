@@ -1,4 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { applyActiveResultOverrides } from "../_shared/result-overrides.ts";
 import {
   internalTeamID,
   matchRow,
@@ -205,6 +206,11 @@ async function syncFixtures(
     if (error) {
       throw error;
     }
+
+    await applyActiveResultOverrides(
+      adminClient,
+      rows.map((row) => String(row.id)).filter((id) => id.length > 0),
+    );
   }
 
   return fixtures.length;

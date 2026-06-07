@@ -206,3 +206,32 @@ curl -X POST \
 ```
 
 Use `simulation.entries`, `simulation.group_standings`, `simulation.advancing_third_place_team_ids`, and `simulation.knockout_results` to test a fake tournament without touching production scores.
+
+### `apply-result-override`
+
+Creates an active admin result override, applies it to the canonical `tournament_matches` row, and invokes `score-brackets` with `dry_run: false` so affected leaderboards refresh immediately. The function is protected by the Supabase service-role bearer token or `x-sync-secret`.
+
+Deploy:
+
+```sh
+pnpm dlx supabase functions deploy apply-result-override --workdir Backend --project-ref <project-ref> --no-verify-jwt
+```
+
+Example:
+
+```sh
+curl -X POST \
+  "https://<project-ref>.functions.supabase.co/apply-result-override" \
+  -H "x-sync-secret: <sync-results-secret>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "match_id":"r32-1",
+    "corrected_status":"final",
+    "corrected_home_score":0,
+    "corrected_away_score":1,
+    "corrected_winner_team_id":"mex",
+    "reason":"Provider corrected the final winner."
+  }'
+```
+
+For hosted rehearsal or targeted admin repair, pass `scoring_pool_id` to scope the immediate rescore to one pool. Omit it to rescore all pool entries.
