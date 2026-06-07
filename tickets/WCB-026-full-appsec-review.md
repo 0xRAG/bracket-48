@@ -77,3 +77,5 @@ Requested by Ryan as a full AppSec review of frontend, backend, auth, and public
 2026-06-07: Added pgTAP RLS authorization tests for owner/member/non-member/anon visibility and entry behavior. The test exposed infinite recursion in the pool entry insert policy, fixed by `012_fix_pool_entry_insert_rls_recursion.sql`, and was verified against the linked database through a rollback-only query run.
 
 2026-06-07: Sanitized production-facing Edge Function errors for account deletion, scoring, and Sportmonks sync. Deployed all three functions and restricted `provider_sync_runs` from authenticated client reads with `013_restrict_provider_sync_runs.sql`.
+
+2026-06-07: Narrowed browser CORS on operational scoring and results sync functions to `https://bracket48.app` and removed `x-sync-secret` from preflight-allowed headers. Redeployed both functions and verified OPTIONS headers.

@@ -70,8 +70,16 @@ Recommendation:
 - Keep `SYNC_RESULTS_SECRET` only in Supabase secrets.
 - Rotate it before launch.
 - Prefer scheduled/internal invocation paths where possible.
-- Consider rejecting browser-like origins or removing broad CORS from privileged operational functions.
 - Log invocation metadata without logging secrets.
+
+Action Taken:
+
+- Narrowed `score-brackets` and `sync-sportmonks-results` CORS to `https://bracket48.app`.
+- Removed `x-sync-secret` from browser preflight allowed headers for those operational functions. Server-to-server callers can still pass the header because CORS is only a browser constraint.
+
+Follow-Up:
+
+- Rotate `SYNC_RESULTS_SECRET` before launch.
 
 ### P1: Missing Repeatable RLS Authorization Tests
 
