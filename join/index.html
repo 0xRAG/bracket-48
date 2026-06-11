@@ -75,6 +75,10 @@
       text-decoration: none;
       font-weight: 700;
     }
+    .store-link {
+      display: inline-block;
+      margin-top: 14px;
+    }
     a {
       color: var(--accent);
       font-weight: 700;
@@ -90,6 +94,7 @@
     <div class="panel">
       <p id="inviteText">Invite link ready.</p>
       <a class="button" id="openLink" href="../">Open Bracket 48</a>
+      <p><a class="store-link" id="storeLink" href="https://apps.apple.com/app/bracket-48/id6777743395">Get Bracket 48 on the App Store</a></p>
     </div>
     <p style="margin-top: 22px;">Bracket 48 is independent and unofficial. It does not offer cash rewards, prizes, betting, or gambling.</p>
     <p><a href="../">Learn more</a></p>
@@ -102,14 +107,30 @@
     const code = (rawCode || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
     const inviteText = document.getElementById("inviteText");
     const openLink = document.getElementById("openLink");
+    const appStoreURL = "https://apps.apple.com/app/bracket-48/id6777743395";
+
+    function openAppWithFallback(appURL) {
+      const openedAt = Date.now();
+      window.location.href = appURL;
+
+      window.setTimeout(() => {
+        if (Date.now() - openedAt < 1800 && !document.hidden) {
+          window.location.href = appStoreURL;
+        }
+      }, 900);
+    }
 
     if (code) {
       inviteText.innerHTML = `Invite code <span class="code">${code}</span>`;
       openLink.href = `bracket48://join?code=${encodeURIComponent(code)}`;
+      openLink.addEventListener("click", (event) => {
+        event.preventDefault();
+        openAppWithFallback(openLink.href);
+      });
     } else {
       inviteText.textContent = "This invite link is missing a code.";
-      openLink.href = "/";
-      openLink.textContent = "Go to Bracket 48";
+      openLink.href = appStoreURL;
+      openLink.textContent = "Get Bracket 48";
     }
   </script>
 </body>
