@@ -1,3 +1,5 @@
+import Foundation
+
 public struct LocalDraftState: Codable, Equatable, Sendable {
     public static let currentSchemaVersion = 3
 
@@ -95,15 +97,18 @@ public struct LocalGroupStagePrediction: Codable, Equatable, Sendable {
 }
 
 public struct LocalSubmittedEntry: Codable, Equatable, Sendable {
+    public let backendID: UUID?
     public let groupName: String
     public let displayName: String
     public let groupStagePredictions: [LocalGroupStagePrediction]
 
     public init(
+        backendID: UUID? = nil,
         groupName: String,
         displayName: String,
         groupStagePredictions: [LocalGroupStagePrediction]
     ) {
+        self.backendID = backendID
         self.groupName = groupName
         self.displayName = displayName
         self.groupStagePredictions = groupStagePredictions
@@ -137,11 +142,13 @@ public struct LocalKnockoutPick: Codable, Equatable, Sendable {
 }
 
 public struct LocalSubmittedKnockoutEntry: Codable, Equatable, Sendable {
+    public let backendID: UUID?
     public let groupName: String
     public let displayName: String
     public let picks: [LocalKnockoutPick]
 
-    public init(groupName: String, displayName: String, picks: [LocalKnockoutPick]) {
+    public init(backendID: UUID? = nil, groupName: String, displayName: String, picks: [LocalKnockoutPick]) {
+        self.backendID = backendID
         self.groupName = groupName
         self.displayName = displayName
         self.picks = picks

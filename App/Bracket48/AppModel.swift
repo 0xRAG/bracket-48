@@ -100,6 +100,7 @@ final class AppModel {
             joinedGroups: joinedGroups.map(\.localGroup),
             submittedEntry: submittedEntry.map { entry in
                 LocalSubmittedEntry(
+                    backendID: entry.backendID,
                     groupName: entry.groupName,
                     displayName: entry.displayName,
                     groupStagePredictions: entry.predictions.map(\.localPrediction)
@@ -107,6 +108,7 @@ final class AppModel {
             },
             submittedKnockoutEntry: submittedKnockoutEntry.map { entry in
                 LocalSubmittedKnockoutEntry(
+                    backendID: entry.backendID,
                     groupName: entry.groupName,
                     displayName: entry.displayName,
                     picks: entry.picks.map(\.localPick)
@@ -177,11 +179,11 @@ final class AppModel {
     }
 
     var isEditingSavedGroupStageBracket: Bool {
-        submittedEntry?.backendID != nil
+        savedGroupStageBracketID != nil
     }
 
     var canEditGroupStageBracket: Bool {
-        guard let groupStageBracketID = submittedEntry?.backendID else {
+        guard let groupStageBracketID = savedGroupStageBracketID else {
             return true
         }
 
@@ -198,6 +200,10 @@ final class AppModel {
 
     var groupStageBrackets: [BackendBracketSummary] {
         backendBrackets.filter { $0.phase == .groupStage }
+    }
+
+    var savedGroupStageBracketID: UUID? {
+        submittedEntry?.backendID ?? groupStageBrackets.first?.id
     }
 
     var knockoutBrackets: [BackendBracketSummary] {
@@ -478,6 +484,7 @@ final class AppModel {
         }
 
         predictions[index].orderedTeams.move(fromOffsets: source, toOffset: destination)
+        backendStatusMessage = nil
         persist()
     }
 
@@ -498,6 +505,7 @@ final class AppModel {
         }
 
         predictions[index].predictedThirdPlaceAdvances = advances
+        backendStatusMessage = nil
         persist()
     }
 
@@ -525,15 +533,31 @@ final class AppModel {
 
     @MainActor
     func submitGroupStageBracketRemotelyAndShowKnockout() async {
-        guard canSubmitBracket else {
+        guard !isBackendBusy else {
+            return
+        }
+
+        guard canEditGroupStageBracket else {
+            backendStatusMessage = "This group-stage bracket is locked because its knockout stage has already been filled."
+            return
+        }
+
+        guard groupStageValidation.isComplete else {
+            backendStatusMessage = groupStageValidationMessage
+            return
+        }
+
+        guard hasRequiredThirdPlaceAdvancers else {
+            backendStatusMessage = "Select exactly \(maxThirdPlaceAdvancers) third-place teams to advance."
             return
         }
 
         let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        await runBackendOperation(successMessage: nil) {
+        let existingGroupStageBracketID = savedGroupStageBracketID
+        await runBackendOperation(successMessage: existingGroupStageBracketID == nil ? nil : "Group-stage changes saved.") {
             let submission = GroupStageBracketSubmission(displayName: trimmedDisplayName, predictions: predictions)
             let summary: BackendBracketSummary
-            if let groupStageBracketID = submittedEntry?.backendID {
+            if let groupStageBracketID = existingGroupStageBracketID {
                 summary = try await services.brackets.updateGroupStageBracket(id: groupStageBracketID, submission)
             } else {
                 summary = try await services.brackets.submitGroupStageBracket(submission)
@@ -544,11 +568,33 @@ final class AppModel {
                 displayName: trimmedDisplayName,
                 predictions: predictions
             )
-            upsertBackendBracket(summary)
+            upsertBackendBracket(
+                groupStageSummary(
+                    from: summary,
+                    displayName: trimmedDisplayName,
+                    predictions: predictions
+                )
+            )
             selectedTab = .brackets
-            step = .knockout
+            step = existingGroupStageBracketID == nil ? .knockout : .bracket
             persist()
         }
+    }
+
+    private var groupStageValidationMessage: String {
+        if !groupStageValidation.missingGroupIDs.isEmpty {
+            return "Complete every group before saving."
+        }
+
+        if !groupStageValidation.incompleteGroupIDs.isEmpty {
+            return "Each group needs a full 1 through 4 order before saving."
+        }
+
+        if !groupStageValidation.duplicateGroupIDs.isEmpty {
+            return "Remove duplicate group picks before saving."
+        }
+
+        return "Complete the group-stage bracket before saving."
     }
 
     func cancelGroupCreation() {
@@ -711,7 +757,7 @@ final class AppModel {
             let summary = try await services.brackets.submitKnockoutBracket(
                 KnockoutBracketSubmission(
                     displayName: trimmedDisplayName,
-                    groupStageBracketID: submittedEntry?.backendID,
+                    groupStageBracketID: savedGroupStageBracketID,
                     picks: knockoutPicks
                 )
             )
@@ -805,20 +851,20 @@ final class AppModel {
         predictions = restoredPredictions(from: state.groupStagePredictions)
         knockoutPicks = restoredKnockoutPicks(from: state.knockoutPicks)
         joinedGroups = restoredJoinedGroups(from: state)
-            submittedEntry = state.submittedEntry.map { entry in
-                SubmittedEntry(
-                    backendID: nil,
-                    groupName: entry.groupName,
-                    displayName: entry.displayName,
-                    predictions: restoredPredictions(from: entry.groupStagePredictions)
+        submittedEntry = state.submittedEntry.map { entry in
+            SubmittedEntry(
+                backendID: entry.backendID,
+                groupName: entry.groupName,
+                displayName: entry.displayName,
+                predictions: restoredPredictions(from: entry.groupStagePredictions)
             )
         }
-            submittedKnockoutEntry = state.submittedKnockoutEntry.map { entry in
-                SubmittedKnockoutEntry(
-                    backendID: nil,
-                    groupName: entry.groupName,
-                    displayName: entry.displayName,
-                    picks: restoredKnockoutPicks(from: entry.picks)
+        submittedKnockoutEntry = state.submittedKnockoutEntry.map { entry in
+            SubmittedKnockoutEntry(
+                backendID: entry.backendID,
+                groupName: entry.groupName,
+                displayName: entry.displayName,
+                picks: restoredKnockoutPicks(from: entry.picks)
             )
         }
         step = Step(localScreen: state.currentScreen, hasSubmittedEntry: submittedEntry != nil)
@@ -969,6 +1015,29 @@ final class AppModel {
     private func upsertBackendBracket(_ bracket: BackendBracketSummary) {
         backendBrackets.removeAll { $0.id == bracket.id }
         backendBrackets.insert(bracket, at: 0)
+    }
+
+    private func groupStageSummary(
+        from summary: BackendBracketSummary,
+        displayName: String,
+        predictions: [GroupStagePredictionDraft]
+    ) -> BackendBracketSummary {
+        BackendBracketSummary(
+            id: summary.id,
+            phase: summary.phase,
+            displayName: displayName,
+            submittedAt: summary.submittedAt,
+            groupStageBracketID: summary.groupStageBracketID,
+            linkedPoolIDs: summary.linkedPoolIDs,
+            groupStagePredictions: predictions.map {
+                BackendGroupStagePrediction(
+                    groupID: $0.groupID,
+                    orderedTeamIDs: $0.orderedTeams.map(\.id),
+                    predictedThirdPlaceAdvances: $0.predictedThirdPlaceAdvances
+                )
+            },
+            knockoutPicks: summary.knockoutPicks
+        )
     }
 
     private static func loadLeaderboards(

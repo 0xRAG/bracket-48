@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(42);
+select plan(44);
 
 create or replace function pg_temp.login_as(user_id uuid)
 returns void
@@ -54,6 +54,29 @@ begin
 
     get diagnostics deleted_count = row_count;
     return deleted_count;
+end;
+$$;
+
+create or replace function pg_temp.try_update_bracket_name(
+    bracket_id_input uuid,
+    display_name_input text
+)
+returns integer
+language plpgsql
+security invoker
+as $$
+declare
+    updated_count integer;
+begin
+    update public.brackets
+    set display_name = display_name_input
+    where id = bracket_id_input;
+
+    get diagnostics updated_count = row_count;
+    return updated_count;
+exception
+    when insufficient_privilege or check_violation then
+        return 0;
 end;
 $$;
 
@@ -205,7 +228,35 @@ values
         'submitted',
         'Outsider candidate bracket',
         '{"predictions":[]}'::jsonb
+    ),
+    (
+        '20000000-0000-4000-8000-000000000006',
+        '00000000-0000-4000-8000-000000000101',
+        'group_stage',
+        'submitted',
+        'Owner editable group-stage bracket',
+        '{"predictions":[]}'::jsonb
+    ),
+    (
+        '20000000-0000-4000-8000-000000000007',
+        '00000000-0000-4000-8000-000000000101',
+        'group_stage',
+        'submitted',
+        'Owner locked group-stage bracket',
+        '{"predictions":[]}'::jsonb
+    ),
+    (
+        '20000000-0000-4000-8000-000000000008',
+        '00000000-0000-4000-8000-000000000101',
+        'knockout',
+        'submitted',
+        'Owner knockout bracket',
+        '{"rounds":[]}'::jsonb
     );
+
+update public.brackets
+set group_stage_bracket_id = '20000000-0000-4000-8000-000000000007'
+where id = '20000000-0000-4000-8000-000000000008';
 
 insert into public.pool_entries (id, pool_id, bracket_id, user_id, phase)
 values (
@@ -408,6 +459,22 @@ select is(
     pg_temp.try_delete_bracket('20000000-0000-4000-8000-000000000002'),
     1,
     'owner can delete an unentered own bracket'
+);
+select is(
+    pg_temp.try_update_bracket_name(
+        '20000000-0000-4000-8000-000000000006',
+        'Owner edited group-stage bracket'
+    ),
+    1,
+    'owner can update a submitted group-stage bracket before knockout is created'
+);
+select is(
+    pg_temp.try_update_bracket_name(
+        '20000000-0000-4000-8000-000000000007',
+        'Owner should not edit locked group-stage bracket'
+    ),
+    0,
+    'owner cannot update a submitted group-stage bracket after knockout is created'
 );
 
 select pg_temp.login_as('00000000-0000-4000-8000-000000000102');

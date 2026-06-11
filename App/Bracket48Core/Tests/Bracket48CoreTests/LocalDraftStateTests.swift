@@ -7,6 +7,7 @@ import Testing
 struct LocalDraftStateTests {
     @Test("encodes and decodes versioned submitted state")
     func encodesAndDecodesSubmittedState() throws {
+        let groupBracketID = try #require(UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
         let prediction = LocalGroupStagePrediction(
             groupID: "A",
             orderedTeamIDs: ["usa", "mex", "can", "kor"],
@@ -33,6 +34,7 @@ struct LocalDraftStateTests {
                 )
             ],
             submittedEntry: LocalSubmittedEntry(
+                backendID: groupBracketID,
                 groupName: "Saturday Pool",
                 displayName: "Ryan",
                 groupStagePredictions: [prediction]
@@ -45,6 +47,7 @@ struct LocalDraftStateTests {
         #expect(restored == state)
         #expect(restored.schemaVersion == LocalDraftState.currentSchemaVersion)
         #expect(restored.joinedGroups.count == 2)
+        #expect(restored.submittedEntry?.backendID == groupBracketID)
     }
 
     @Test("supports unsubmitted local bracket state")

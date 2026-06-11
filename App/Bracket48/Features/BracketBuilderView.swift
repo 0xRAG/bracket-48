@@ -90,24 +90,41 @@ struct BracketBuilderView: View {
         .background(AppBackground(accentColor: appModel.primaryAccentColor.color))
         .safeAreaInset(edge: .bottom) {
             if appModel.canEditGroupStageBracket {
-                Button {
-                    Task {
-                        await appModel.submitGroupStageBracketRemotelyAndShowKnockout()
-                        if appModel.step == .knockout {
-                            onSubmitted?()
-                        }
+                VStack(spacing: 8) {
+                    if let backendStatusMessage = appModel.backendStatusMessage {
+                        Text(backendStatusMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     }
-                } label: {
-                    Text(appModel.isBackendBusy ? "Saving Bracket" : (appModel.isEditingSavedGroupStageBracket ? "Save Changes" : "Continue to Knockout"))
-                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    Button {
+                        Task {
+                            await appModel.submitGroupStageBracketRemotelyAndShowKnockout()
+                            if appModel.step == .knockout {
+                                onSubmitted?()
+                            }
+                        }
+                    } label: {
+                        Text(saveButtonTitle)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(appModel.isBackendBusy)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(!appModel.canSubmitBracket)
                 .padding()
                 .background(.regularMaterial)
             }
         }
+    }
+
+    private var saveButtonTitle: String {
+        if appModel.isBackendBusy {
+            return appModel.isEditingSavedGroupStageBracket ? "Saving Changes" : "Saving Bracket"
+        }
+
+        return appModel.isEditingSavedGroupStageBracket ? "Save Changes" : "Continue to Knockout"
     }
 }
 
