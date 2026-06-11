@@ -47,7 +47,13 @@ final class AppModel {
 
     let tournament: Tournament
     let groups: [AppGroup]
-    let knockoutBracket: AppKnockoutBracket
+
+    var knockoutBracket: AppKnockoutBracket {
+        TournamentFixtures.appKnockoutBracket(
+            from: tournament,
+            groupStagePredictions: submittedEntry?.predictions ?? predictions
+        )
+    }
 
     init(localStore: DraftStateStore = DraftStateStore()) {
         self.localStore = localStore
@@ -61,7 +67,6 @@ final class AppModel {
         }
         tournament = TournamentFixtures.tournament
         groups = TournamentFixtures.appGroups(from: tournament)
-        knockoutBracket = TournamentFixtures.appKnockoutBracket(from: tournament)
         predictions = Self.defaultPredictions(groups: groups)
         joinedGroups = []
         backendBrackets = []
@@ -1472,6 +1477,16 @@ struct AppKnockoutBracket: Hashable {
     }
 }
 
+private struct RoundOf32Fixture {
+    let home: KnockoutTeamSource
+    let away: KnockoutTeamSource
+}
+
+private enum KnockoutTeamSource {
+    case groupPlacement(groupID: GroupID, position: Int)
+    case thirdPlaceOpponent(forGroupID: GroupID)
+}
+
 private extension AppModel.Step {
     init(localScreen: LocalAppScreen, hasSubmittedEntry: Bool) {
         switch localScreen {
@@ -1557,47 +1572,68 @@ enum TournamentFixtures {
         }
     }
 
-    static func appKnockoutBracket(from tournament: Tournament) -> AppKnockoutBracket {
+    static func appKnockoutBracket(
+        from tournament: Tournament,
+        groupStagePredictions: [GroupStagePredictionDraft] = []
+    ) -> AppKnockoutBracket {
         let teamsByID = Dictionary(uniqueKeysWithValues: appGroups(from: tournament).flatMap(\.teams).map { ($0.id, $0) })
-        let seededTeamIDs = seededTeams.flatMap(\.teams).map(\.id)
-        let roundOf32Teams = seededTeamIDs.prefix(32).compactMap { teamsByID[$0] }
+        let predictionsByGroupID = Dictionary(uniqueKeysWithValues: groupStagePredictions.map { (GroupID($0.groupID), $0) })
+        let thirdPlaceAssignments = thirdPlaceAssignments(from: groupStagePredictions)
 
-        let roundOf32 = (0..<16).map { index in
+        let roundOf32 = roundOf32Fixtures.enumerated().map { index, fixture in
             AppKnockoutMatch(
                 id: "r32-\(index + 1)",
                 round: .roundOf32,
                 label: "Round of 32 Game \(index + 1)",
                 sourceMatchIDs: [],
-                homeTeam: roundOf32Teams[index],
-                awayTeam: roundOf32Teams[31 - index]
+                homeTeam: appTeam(
+                    for: fixture.home,
+                    predictionsByGroupID: predictionsByGroupID,
+                    thirdPlaceAssignments: thirdPlaceAssignments,
+                    teamsByID: teamsByID
+                ),
+                awayTeam: appTeam(
+                    for: fixture.away,
+                    predictionsByGroupID: predictionsByGroupID,
+                    thirdPlaceAssignments: thirdPlaceAssignments,
+                    teamsByID: teamsByID
+                )
             )
         }
-        let roundOf16 = (0..<8).map { index in
+        let roundOf16Sources = [
+            ["r32-2", "r32-5"], ["r32-1", "r32-3"], ["r32-4", "r32-6"], ["r32-7", "r32-8"],
+            ["r32-11", "r32-12"], ["r32-9", "r32-10"], ["r32-14", "r32-16"], ["r32-13", "r32-15"]
+        ]
+        let roundOf16 = roundOf16Sources.enumerated().map { index, sources in
             AppKnockoutMatch(
                 id: "r16-\(index + 1)",
                 round: .roundOf16,
                 label: "Round of 16 Game \(index + 1)",
-                sourceMatchIDs: ["r32-\((index * 2) + 1)", "r32-\((index * 2) + 2)"],
+                sourceMatchIDs: sources,
                 homeTeam: nil,
                 awayTeam: nil
             )
         }
-        let quarterfinals = (0..<4).map { index in
+        let quarterfinalSources = [
+            ["r16-1", "r16-2"], ["r16-5", "r16-6"], ["r16-3", "r16-4"], ["r16-7", "r16-8"]
+        ]
+        let quarterfinals = quarterfinalSources.enumerated().map { index, sources in
             AppKnockoutMatch(
                 id: "qf-\(index + 1)",
                 round: .quarterfinal,
                 label: "Quarterfinal Game \(index + 1)",
-                sourceMatchIDs: ["r16-\((index * 2) + 1)", "r16-\((index * 2) + 2)"],
+                sourceMatchIDs: sources,
                 homeTeam: nil,
                 awayTeam: nil
             )
         }
-        let semifinals = (0..<2).map { index in
+        let semifinalSources = [["qf-1", "qf-2"], ["qf-3", "qf-4"]]
+        let semifinals = semifinalSources.enumerated().map { index, sources in
             AppKnockoutMatch(
                 id: "sf-\(index + 1)",
                 round: .semifinal,
                 label: "Semifinal Game \(index + 1)",
-                sourceMatchIDs: ["qf-\((index * 2) + 1)", "qf-\((index * 2) + 2)"],
+                sourceMatchIDs: sources,
                 homeTeam: nil,
                 awayTeam: nil
             )
@@ -1615,6 +1651,115 @@ enum TournamentFixtures {
 
         return AppKnockoutBracket(matches: roundOf32 + roundOf16 + quarterfinals + semifinals + final)
     }
+
+    private static func appTeam(
+        for source: KnockoutTeamSource,
+        predictionsByGroupID: [GroupID: GroupStagePredictionDraft],
+        thirdPlaceAssignments: [GroupID: GroupID],
+        teamsByID: [String: AppTeam]
+    ) -> AppTeam? {
+        switch source {
+        case let .groupPlacement(groupID, position):
+            let team = predictionsByGroupID[groupID]?.orderedTeams[safe: position - 1]
+                ?? defaultTeam(groupID: groupID, position: position)
+            return team.flatMap { teamsByID[$0.id] }
+        case let .thirdPlaceOpponent(forGroupID):
+            guard let thirdPlaceGroupID = thirdPlaceAssignments[forGroupID] else {
+                return nil
+            }
+
+            let team = predictionsByGroupID[thirdPlaceGroupID]?.orderedTeams[safe: 2]
+                ?? defaultTeam(groupID: thirdPlaceGroupID, position: 3)
+            return team.flatMap { teamsByID[$0.id] }
+        }
+    }
+
+    private static func defaultTeam(groupID: GroupID, position: Int) -> AppTeam? {
+        guard let group = seededTeams.first(where: { $0.id == groupID.rawValue }),
+              let team = group.teams[safe: position - 1]
+        else {
+            return nil
+        }
+
+        return AppTeam(
+            id: team.id,
+            name: team.name,
+            flagEmoji: flagEmoji(for: team.countryCode),
+            code: team.fifaCode,
+            colorHex: colorHex(for: team.fifaCode)
+        )
+    }
+
+    private static func thirdPlaceAssignments(from predictions: [GroupStagePredictionDraft]) -> [GroupID: GroupID] {
+        let advancingGroups = advancingThirdPlaceGroupIDs(from: predictions)
+        guard let assignmentString = thirdPlaceAssignmentMap[thirdPlaceKey(for: advancingGroups)] else {
+            return [:]
+        }
+
+        return Dictionary(uniqueKeysWithValues: zip(thirdPlaceAssignmentSlots, assignmentString).map { slotGroupID, thirdPlaceCharacter in
+            (slotGroupID, GroupID(String(thirdPlaceCharacter)))
+        })
+    }
+
+    private static func advancingThirdPlaceGroupIDs(from predictions: [GroupStagePredictionDraft]) -> [GroupID] {
+        let predictionsByGroupID = Dictionary(uniqueKeysWithValues: predictions.map { (GroupID($0.groupID), $0) })
+        let groupOrder = seededTeams.map { GroupID($0.id) }
+        guard !predictions.isEmpty else {
+            return Array(groupOrder.prefix(8))
+        }
+
+        let predictedAdvancers = groupOrder.filter { predictionsByGroupID[$0]?.predictedThirdPlaceAdvances == true }
+        let remaining = groupOrder.filter { !predictedAdvancers.contains($0) }
+        return Array((predictedAdvancers + remaining).prefix(8))
+    }
+
+    private static func thirdPlaceKey(for groups: [GroupID]) -> String {
+        groups.map(\.rawValue).sorted().joined()
+    }
+
+    private static func knockoutSlotSource(for source: KnockoutTeamSource) -> KnockoutSlotSource {
+        switch source {
+        case let .groupPlacement(groupID, position):
+            .groupPlacement(groupID: groupID, position: position)
+        case let .thirdPlaceOpponent(forGroupID):
+            .bestThirdPlace(rank: thirdPlaceAssignmentSlots.firstIndex(of: forGroupID).map { $0 + 1 } ?? 0)
+        }
+    }
+
+    private static let thirdPlaceAssignmentSlots: [GroupID] = ["A", "B", "D", "E", "G", "I", "K", "L"]
+
+    private static let thirdPlaceAssignmentMap: [String: String] = {
+        Dictionary(uniqueKeysWithValues: thirdPlaceAssignmentsData.split(separator: ";").compactMap { entry in
+            let parts = entry.split(separator: "=")
+            guard parts.count == 2 else {
+                return nil
+            }
+
+            return (String(parts[0]), String(parts[1]))
+        })
+    }()
+
+    private static let thirdPlaceAssignmentsData = "EFGHIJKL=EJIFHGLK;DFGHIJKL=HGIDJFLK;DEGHIJKL=EJIDHGLK;DEFHIJKL=EJIDHFLK;DEFGIJKL=EGIDJFLK;DEFGHJKL=EGJDHFLK;DEFGHIKL=EGIDHFLK;DEFGHIJL=EGJDHFLI;DEFGHIJK=EGJDHFIK;CFGHIJKL=HGICJFLK;CEGHIJKL=EJICHGLK;CEFHIJKL=EJICHFLK;CEFGIJKL=EGICJFLK;CEFGHJKL=EGJCHFLK;CEFGHIKL=EGICHFLK;CEFGHIJL=EGJCHFLI;CEFGHIJK=EGJCHFIK;CDGHIJKL=HGICJDLK;CDFHIJKL=CJIDHFLK;CDFGIJKL=CGIDJFLK;CDFGHJKL=CGJDHFLK;CDFGHIKL=CGIDHFLK;CDFGHIJL=CGJDHFLI;CDFGHIJK=CGJDHFIK;CDEHIJKL=EJICHDLK;CDEGIJKL=EGICJDLK;CDEGHJKL=EGJCHDLK;CDEGHIKL=EGICHDLK;CDEGHIJL=EGJCHDLI;CDEGHIJK=EGJCHDIK;CDEFIJKL=CJEDIFLK;CDEFHJKL=CJEDHFLK;CDEFHIKL=CEIDHFLK;CDEFHIJL=CJEDHFLI;CDEFHIJK=CJEDHFIK;CDEFGJKL=CGEDJFLK;CDEFGIKL=CGEDIFLK;CDEFGIJL=CGEDJFLI;CDEFGIJK=CGEDJFIK;CDEFGHKL=CGEDHFLK;CDEFGHJL=CGJDHFLE;CDEFGHJK=CGJDHFEK;CDEFGHIL=CGEDHFLI;CDEFGHIK=CGEDHFIK;CDEFGHIJ=CGJDHFEI;BFGHIJKL=HJBFIGLK;BEGHIJKL=EJIBHGLK;BEFHIJKL=EJBFIHLK;BEFGIJKL=EJBFIGLK;BEFGHJKL=EJBFHGLK;BEFGHIKL=EGBFIHLK;BEFGHIJL=EJBFHGLI;BEFGHIJK=EJBFHGIK;BDGHIJKL=HJBDIGLK;BDFHIJKL=HJBDIFLK;BDFGIJKL=IGBDJFLK;BDFGHJKL=HGBDJFLK;BDFGHIKL=HGBDIFLK;BDFGHIJL=HGBDJFLI;BDFGHIJK=HGBDJFIK;BDEHIJKL=EJBDIHLK;BDEGIJKL=EJBDIGLK;BDEGHJKL=EJBDHGLK;BDEGHIKL=EGBDIHLK;BDEGHIJL=EJBDHGLI;BDEGHIJK=EJBDHGIK;BDEFIJKL=EJBDIFLK;BDEFHJKL=EJBDHFLK;BDEFHIKL=EIBDHFLK;BDEFHIJL=EJBDHFLI;BDEFHIJK=EJBDHFIK;BDEFGJKL=EGBDJFLK;BDEFGIKL=EGBDIFLK;BDEFGIJL=EGBDJFLI;BDEFGIJK=EGBDJFIK;BDEFGHKL=EGBDHFLK;BDEFGHJL=HGBDJFLE;BDEFGHJK=HGBDJFEK;BDEFGHIL=EGBDHFLI;BDEFGHIK=EGBDHFIK;BDEFGHIJ=HGBDJFEI;BCGHIJKL=HJBCIGLK;BCFHIJKL=HJBCIFLK;BCFGIJKL=IGBCJFLK;BCFGHJKL=HGBCJFLK;BCFGHIKL=HGBCIFLK;BCFGHIJL=HGBCJFLI;BCFGHIJK=HGBCJFIK;BCEHIJKL=EJBCIHLK;BCEGIJKL=EJBCIGLK;BCEGHJKL=EJBCHGLK;BCEGHIKL=EGBCIHLK;BCEGHIJL=EJBCHGLI;BCEGHIJK=EJBCHGIK;BCEFIJKL=EJBCIFLK;BCEFHJKL=EJBCHFLK;BCEFHIKL=EIBCHFLK;BCEFHIJL=EJBCHFLI;BCEFHIJK=EJBCHFIK;BCEFGJKL=EGBCJFLK;BCEFGIKL=EGBCIFLK;BCEFGIJL=EGBCJFLI;BCEFGIJK=EGBCJFIK;BCEFGHKL=EGBCHFLK;BCEFGHJL=HGBCJFLE;BCEFGHJK=HGBCJFEK;BCEFGHIL=EGBCHFLI;BCEFGHIK=EGBCHFIK;BCEFGHIJ=HGBCJFEI;BCDHIJKL=HJBCIDLK;BCDGIJKL=IGBCJDLK;BCDGHJKL=HGBCJDLK;BCDGHIKL=HGBCIDLK;BCDGHIJL=HGBCJDLI;BCDGHIJK=HGBCJDIK;BCDFIJKL=CJBDIFLK;BCDFHJKL=CJBDHFLK;BCDFHIKL=CIBDHFLK;BCDFHIJL=CJBDHFLI;BCDFHIJK=CJBDHFIK;BCDFGJKL=CGBDJFLK;BCDFGIKL=CGBDIFLK;BCDFGIJL=CGBDJFLI;BCDFGIJK=CGBDJFIK;BCDFGHKL=CGBDHFLK;BCDFGHJL=CGBDHFLJ;BCDFGHJK=HGBCJFDK;BCDFGHIL=CGBDHFLI;BCDFGHIK=CGBDHFIK;BCDFGHIJ=HGBCJFDI;BCDEIJKL=EJBCIDLK;BCDEHJKL=EJBCHDLK;BCDEHIKL=EIBCHDLK;BCDEHIJL=EJBCHDLI;BCDEHIJK=EJBCHDIK;BCDEGJKL=EGBCJDLK;BCDEGIKL=EGBCIDLK;BCDEGIJL=EGBCJDLI;BCDEGIJK=EGBCJDIK;BCDEGHKL=EGBCHDLK;BCDEGHJL=HGBCJDLE;BCDEGHJK=HGBCJDEK;BCDEGHIL=EGBCHDLI;BCDEGHIK=EGBCHDIK;BCDEGHIJ=HGBCJDEI;BCDEFJKL=CJBDEFLK;BCDEFIKL=CEBDIFLK;BCDEFIJL=CJBDEFLI;BCDEFIJK=CJBDEFIK;BCDEFHKL=CEBDHFLK;BCDEFHJL=CJBDHFLE;BCDEFHJK=CJBDHFEK;BCDEFHIL=CEBDHFLI;BCDEFHIK=CEBDHFIK;BCDEFHIJ=CJBDHFEI;BCDEFGKL=CGBDEFLK;BCDEFGJL=CGBDJFLE;BCDEFGJK=CGBDJFEK;BCDEFGIL=CGBDEFLI;BCDEFGIK=CGBDEFIK;BCDEFGIJ=CGBDJFEI;BCDEFGHL=CGBDHFLE;BCDEFGHK=CGBDHFEK;BCDEFGHJ=HGBCJFDE;BCDEFGHI=CGBDHFEI;AFGHIJKL=HJIFAGLK;AEGHIJKL=EJIAHGLK;AEFHIJKL=EJIFAHLK;AEFGIJKL=EJIFAGLK;AEFGHJKL=EGJFAHLK;AEFGHIKL=EGIFAHLK;AEFGHIJL=EGJFAHLI;AEFGHIJK=EGJFAHIK;ADGHIJKL=HJIDAGLK;ADFHIJKL=HJIDAFLK;ADFGIJKL=IGJDAFLK;ADFGHJKL=HGJDAFLK;ADFGHIKL=HGIDAFLK;ADFGHIJL=HGJDAFLI;ADFGHIJK=HGJDAFIK;ADEHIJKL=EJIDAHLK;ADEGIJKL=EJIDAGLK;ADEGHJKL=EGJDAHLK;ADEGHIKL=EGIDAHLK;ADEGHIJL=EGJDAHLI;ADEGHIJK=EGJDAHIK;ADEFIJKL=EJIDAFLK;ADEFHJKL=HJEDAFLK;ADEFHIKL=HEIDAFLK;ADEFHIJL=HJEDAFLI;ADEFHIJK=HJEDAFIK;ADEFGJKL=EGJDAFLK;ADEFGIKL=EGIDAFLK;ADEFGIJL=EGJDAFLI;ADEFGIJK=EGJDAFIK;ADEFGHKL=HGEDAFLK;ADEFGHJL=HGJDAFLE;ADEFGHJK=HGJDAFEK;ADEFGHIL=HGEDAFLI;ADEFGHIK=HGEDAFIK;ADEFGHIJ=HGJDAFEI;ACGHIJKL=HJICAGLK;ACFHIJKL=HJICAFLK;ACFGIJKL=IGJCAFLK;ACFGHJKL=HGJCAFLK;ACFGHIKL=HGICAFLK;ACFGHIJL=HGJCAFLI;ACFGHIJK=HGJCAFIK;ACEHIJKL=EJICAHLK;ACEGIJKL=EJICAGLK;ACEGHJKL=EGJCAHLK;ACEGHIKL=EGICAHLK;ACEGHIJL=EGJCAHLI;ACEGHIJK=EGJCAHIK;ACEFIJKL=EJICAFLK;ACEFHJKL=HJECAFLK;ACEFHIKL=HEICAFLK;ACEFHIJL=HJECAFLI;ACEFHIJK=HJECAFIK;ACEFGJKL=EGJCAFLK;ACEFGIKL=EGICAFLK;ACEFGIJL=EGJCAFLI;ACEFGIJK=EGJCAFIK;ACEFGHKL=HGECAFLK;ACEFGHJL=HGJCAFLE;ACEFGHJK=HGJCAFEK;ACEFGHIL=HGECAFLI;ACEFGHIK=HGECAFIK;ACEFGHIJ=HGJCAFEI;ACDHIJKL=HJICADLK;ACDGIJKL=IGJCADLK;ACDGHJKL=HGJCADLK;ACDGHIKL=HGICADLK;ACDGHIJL=HGJCADLI;ACDGHIJK=HGJCADIK;ACDFIJKL=CJIDAFLK;ACDFHJKL=HJFCADLK;ACDFHIKL=HFICADLK;ACDFHIJL=HJFCADLI;ACDFHIJK=HJFCADIK;ACDFGJKL=CGJDAFLK;ACDFGIKL=CGIDAFLK;ACDFGIJL=CGJDAFLI;ACDFGIJK=CGJDAFIK;ACDFGHKL=HGFCADLK;ACDFGHJL=CGJDAFLH;ACDFGHJK=HGJCAFDK;ACDFGHIL=HGFCADLI;ACDFGHIK=HGFCADIK;ACDFGHIJ=HGJCAFDI;ACDEIJKL=EJICADLK;ACDEHJKL=HJECADLK;ACDEHIKL=HEICADLK;ACDEHIJL=HJECADLI;ACDEHIJK=HJECADIK;ACDEGJKL=EGJCADLK;ACDEGIKL=EGICADLK;ACDEGIJL=EGJCADLI;ACDEGIJK=EGJCADIK;ACDEGHKL=HGECADLK;ACDEGHJL=HGJCADLE;ACDEGHJK=HGJCADEK;ACDEGHIL=HGECADLI;ACDEGHIK=HGECADIK;ACDEGHIJ=HGJCADEI;ACDEFJKL=CJEDAFLK;ACDEFIKL=CEIDAFLK;ACDEFIJL=CJEDAFLI;ACDEFIJK=CJEDAFIK;ACDEFHKL=HEFCADLK;ACDEFHJL=HJFCADLE;ACDEFHJK=HJECAFDK;ACDEFHIL=HEFCADLI;ACDEFHIK=HEFCADIK;ACDEFHIJ=HJECAFDI;ACDEFGKL=CGEDAFLK;ACDEFGJL=CGJDAFLE;ACDEFGJK=CGJDAFEK;ACDEFGIL=CGEDAFLI;ACDEFGIK=CGEDAFIK;ACDEFGIJ=CGJDAFEI;ACDEFGHL=HGFCADLE;ACDEFGHK=HGECAFDK;ACDEFGHJ=HGJCAFDE;ACDEFGHI=HGECAFDI;ABGHIJKL=HJBAIGLK;ABFHIJKL=HJBAIFLK;ABFGIJKL=IJBFAGLK;ABFGHJKL=HJBFAGLK;ABFGHIKL=HGBAIFLK;ABFGHIJL=HJBFAGLI;ABFGHIJK=HJBFAGIK;ABEHIJKL=EJBAIHLK;ABEGIJKL=EJBAIGLK;ABEGHJKL=EJBAHGLK;ABEGHIKL=EGBAIHLK;ABEGHIJL=EJBAHGLI;ABEGHIJK=EJBAHGIK;ABEFIJKL=EJBAIFLK;ABEFHJKL=EJBFAHLK;ABEFHIKL=EIBFAHLK;ABEFHIJL=EJBFAHLI;ABEFHIJK=EJBFAHIK;ABEFGJKL=EJBFAGLK;ABEFGIKL=EGBAIFLK;ABEFGIJL=EJBFAGLI;ABEFGIJK=EJBFAGIK;ABEFGHKL=EGBFAHLK;ABEFGHJL=HJBFAGLE;ABEFGHJK=HJBFAGEK;ABEFGHIL=EGBFAHLI;ABEFGHIK=EGBFAHIK;ABEFGHIJ=HJBFAGEI;ABDHIJKL=IJBDAHLK;ABDGIJKL=IJBDAGLK;ABDGHJKL=HJBDAGLK;ABDGHIKL=IGBDAHLK;ABDGHIJL=HJBDAGLI;ABDGHIJK=HJBDAGIK;ABDFIJKL=IJBDAFLK;ABDFHJKL=HJBDAFLK;ABDFHIKL=HIBDAFLK;ABDFHIJL=HJBDAFLI;ABDFHIJK=HJBDAFIK;ABDFGJKL=FJBDAGLK;ABDFGIKL=IGBDAFLK;ABDFGIJL=FJBDAGLI;ABDFGIJK=FJBDAGIK;ABDFGHKL=HGBDAFLK;ABDFGHJL=HGBDAFLJ;ABDFGHJK=HGBDAFJK;ABDFGHIL=HGBDAFLI;ABDFGHIK=HGBDAFIK;ABDFGHIJ=HGBDAFIJ;ABDEIJKL=EJBAIDLK;ABDEHJKL=EJBDAHLK;ABDEHIKL=EIBDAHLK;ABDEHIJL=EJBDAHLI;ABDEHIJK=EJBDAHIK;ABDEGJKL=EJBDAGLK;ABDEGIKL=EGBAIDLK;ABDEGIJL=EJBDAGLI;ABDEGIJK=EJBDAGIK;ABDEGHKL=EGBDAHLK;ABDEGHJL=HJBDAGLE;ABDEGHJK=HJBDAGEK;ABDEGHIL=EGBDAHLI;ABDEGHIK=EGBDAHIK;ABDEGHIJ=HJBDAGEI;ABDEFJKL=EJBDAFLK;ABDEFIKL=EIBDAFLK;ABDEFIJL=EJBDAFLI;ABDEFIJK=EJBDAFIK;ABDEFHKL=HEBDAFLK;ABDEFHJL=HJBDAFLE;ABDEFHJK=HJBDAFEK;ABDEFHIL=HEBDAFLI;ABDEFHIK=HEBDAFIK;ABDEFHIJ=HJBDAFEI;ABDEFGKL=EGBDAFLK;ABDEFGJL=EGBDAFLJ;ABDEFGJK=EGBDAFJK;ABDEFGIL=EGBDAFLI;ABDEFGIK=EGBDAFIK;ABDEFGIJ=EGBDAFIJ;ABDEFGHL=HGBDAFLE;ABDEFGHK=HGBDAFEK;ABDEFGHJ=HGBDAFEJ;ABDEFGHI=HGBDAFEI;ABCHIJKL=IJBCAHLK;ABCGIJKL=IJBCAGLK;ABCGHJKL=HJBCAGLK;ABCGHIKL=IGBCAHLK;ABCGHIJL=HJBCAGLI;ABCGHIJK=HJBCAGIK;ABCFIJKL=IJBCAFLK;ABCFHJKL=HJBCAFLK;ABCFHIKL=HIBCAFLK;ABCFHIJL=HJBCAFLI;ABCFHIJK=HJBCAFIK;ABCFGJKL=CJBFAGLK;ABCFGIKL=IGBCAFLK;ABCFGIJL=CJBFAGLI;ABCFGIJK=CJBFAGIK;ABCFGHKL=HGBCAFLK;ABCFGHJL=HGBCAFLJ;ABCFGHJK=HGBCAFJK;ABCFGHIL=HGBCAFLI;ABCFGHIK=HGBCAFIK;ABCFGHIJ=HGBCAFIJ;ABCEIJKL=EJBAICLK;ABCEHJKL=EJBCAHLK;ABCEHIKL=EIBCAHLK;ABCEHIJL=EJBCAHLI;ABCEHIJK=EJBCAHIK;ABCEGJKL=EJBCAGLK;ABCEGIKL=EGBAICLK;ABCEGIJL=EJBCAGLI;ABCEGIJK=EJBCAGIK;ABCEGHKL=EGBCAHLK;ABCEGHJL=HJBCAGLE;ABCEGHJK=HJBCAGEK;ABCEGHIL=EGBCAHLI;ABCEGHIK=EGBCAHIK;ABCEGHIJ=HJBCAGEI;ABCEFJKL=EJBCAFLK;ABCEFIKL=EIBCAFLK;ABCEFIJL=EJBCAFLI;ABCEFIJK=EJBCAFIK;ABCEFHKL=HEBCAFLK;ABCEFHJL=HJBCAFLE;ABCEFHJK=HJBCAFEK;ABCEFHIL=HEBCAFLI;ABCEFHIK=HEBCAFIK;ABCEFHIJ=HJBCAFEI;ABCEFGKL=EGBCAFLK;ABCEFGJL=EGBCAFLJ;ABCEFGJK=EGBCAFJK;ABCEFGIL=EGBCAFLI;ABCEFGIK=EGBCAFIK;ABCEFGIJ=EGBCAFIJ;ABCEFGHL=HGBCAFLE;ABCEFGHK=HGBCAFEK;ABCEFGHJ=HGBCAFEJ;ABCEFGHI=HGBCAFEI;ABCDIJKL=IJBCADLK;ABCDHJKL=HJBCADLK;ABCDHIKL=HIBCADLK;ABCDHIJL=HJBCADLI;ABCDHIJK=HJBCADIK;ABCDGJKL=CJBDAGLK;ABCDGIKL=IGBCADLK;ABCDGIJL=CJBDAGLI;ABCDGIJK=CJBDAGIK;ABCDGHKL=HGBCADLK;ABCDGHJL=HGBCADLJ;ABCDGHJK=HGBCADJK;ABCDGHIL=HGBCADLI;ABCDGHIK=HGBCADIK;ABCDGHIJ=HGBCADIJ;ABCDFJKL=CJBDAFLK;ABCDFIKL=CIBDAFLK;ABCDFIJL=CJBDAFLI;ABCDFIJK=CJBDAFIK;ABCDFHKL=HFBCADLK;ABCDFHJL=CJBDAFLH;ABCDFHJK=HJBCAFDK;ABCDFHIL=HFBCADLI;ABCDFHIK=HFBCADIK;ABCDFHIJ=HJBCAFDI;ABCDFGKL=CGBDAFLK;ABCDFGJL=CGBDAFLJ;ABCDFGJK=CGBDAFJK;ABCDFGIL=CGBDAFLI;ABCDFGIK=CGBDAFIK;ABCDFGIJ=CGBDAFIJ;ABCDFGHL=CGBDAFLH;ABCDFGHK=HGBCAFDK;ABCDFGHJ=HGBCAFDJ;ABCDFGHI=HGBCAFDI;ABCDEJKL=EJBCADLK;ABCDEIKL=EIBCADLK;ABCDEIJL=EJBCADLI;ABCDEIJK=EJBCADIK;ABCDEHKL=HEBCADLK;ABCDEHJL=HJBCADLE;ABCDEHJK=HJBCADEK;ABCDEHIL=HEBCADLI;ABCDEHIK=HEBCADIK;ABCDEHIJ=HJBCADEI;ABCDEGKL=EGBCADLK;ABCDEGJL=EGBCADLJ;ABCDEGJK=EGBCADJK;ABCDEGIL=EGBCADLI;ABCDEGIK=EGBCADIK;ABCDEGIJ=EGBCADIJ;ABCDEGHL=HGBCADLE;ABCDEGHK=HGBCADEK;ABCDEGHJ=HGBCADEJ;ABCDEGHI=HGBCADEI;ABCDEFKL=CEBDAFLK;ABCDEFJL=CJBDAFLE;ABCDEFJK=CJBDAFEK;ABCDEFIL=CEBDAFLI;ABCDEFIK=CEBDAFIK;ABCDEFIJ=CJBDAFEI;ABCDEFHL=HFBCADLE;ABCDEFHK=HEBCAFDK;ABCDEFHJ=HJBCAFDE;ABCDEFHI=HEBCAFDI;ABCDEFGL=CGBDAFLE;ABCDEFGK=CGBDAFEK;ABCDEFGJ=CGBDAFEJ;ABCDEFGI=CGBDAFEI;ABCDEFGH=HGBCAFDE"
+
+
+    private static let roundOf32Fixtures: [RoundOf32Fixture] = [
+        RoundOf32Fixture(home: .groupPlacement(groupID: "A", position: 2), away: .groupPlacement(groupID: "B", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "E", position: 1), away: .thirdPlaceOpponent(forGroupID: "E")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "F", position: 1), away: .groupPlacement(groupID: "C", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "C", position: 1), away: .groupPlacement(groupID: "F", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "I", position: 1), away: .thirdPlaceOpponent(forGroupID: "I")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "E", position: 2), away: .groupPlacement(groupID: "I", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "A", position: 1), away: .thirdPlaceOpponent(forGroupID: "A")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "L", position: 1), away: .thirdPlaceOpponent(forGroupID: "L")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "D", position: 1), away: .thirdPlaceOpponent(forGroupID: "D")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "G", position: 1), away: .thirdPlaceOpponent(forGroupID: "G")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "K", position: 2), away: .groupPlacement(groupID: "L", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "H", position: 1), away: .groupPlacement(groupID: "J", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "B", position: 1), away: .thirdPlaceOpponent(forGroupID: "B")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "J", position: 1), away: .groupPlacement(groupID: "H", position: 2)),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "K", position: 1), away: .thirdPlaceOpponent(forGroupID: "K")),
+        RoundOf32Fixture(home: .groupPlacement(groupID: "D", position: 2), away: .groupPlacement(groupID: "G", position: 2))
+    ]
 
     private static let teams: [Team] = seededTeams.flatMap { group in
         group.teams.map { team in
@@ -1674,69 +1819,104 @@ enum TournamentFixtures {
     private static let knockoutSlots: [KnockoutSlot] = {
         var slots: [KnockoutSlot] = []
 
-        for index in 1...16 {
-            let groupIndex = min(index, 12) - 1
-            let groupID = GroupID(seededTeams[groupIndex].id)
+        for (index, match) in roundOf32Fixtures.enumerated() {
+            let matchIndex = index + 1
             slots.append(
                 KnockoutSlot(
-                    id: "r32-\(index)-home",
+                    id: "r32-\(matchIndex)-home",
                     round: .roundOf32,
-                    matchID: MatchID("r32-\(index)"),
+                    matchID: MatchID("r32-\(matchIndex)"),
                     side: .home,
-                    source: .groupPlacement(groupID: groupID, position: 1)
+                    source: knockoutSlotSource(for: match.home)
                 )
             )
             slots.append(
                 KnockoutSlot(
-                    id: "r32-\(index)-away",
+                    id: "r32-\(matchIndex)-away",
                     round: .roundOf32,
-                    matchID: MatchID("r32-\(index)"),
+                    matchID: MatchID("r32-\(matchIndex)"),
                     side: .away,
-                    source: index <= 8
-                        ? .bestThirdPlace(rank: index)
-                        : .groupPlacement(groupID: GroupID(seededTeams[index - 9].id), position: 2)
+                    source: knockoutSlotSource(for: match.away)
                 )
             )
         }
 
-        for index in 1...8 {
+        let roundOf16Sources = [
+            (2, 5), (1, 3), (4, 6), (7, 8), (11, 12), (9, 10), (14, 16), (13, 15)
+        ]
+        for (index, source) in roundOf16Sources.enumerated() {
+            let matchIndex = index + 1
             slots.append(
                 KnockoutSlot(
-                    id: "r16-\(index)-home",
+                    id: "r16-\(matchIndex)-home",
                     round: .roundOf16,
-                    matchID: MatchID("r16-\(index)"),
+                    matchID: MatchID("r16-\(matchIndex)"),
                     side: .home,
-                    source: .matchWinner(matchID: MatchID("r32-\((index * 2) - 1)"))
+                    source: .matchWinner(matchID: MatchID("r32-\(source.0)"))
+                )
+            )
+            slots.append(
+                KnockoutSlot(
+                    id: "r16-\(matchIndex)-away",
+                    round: .roundOf16,
+                    matchID: MatchID("r16-\(matchIndex)"),
+                    side: .away,
+                    source: .matchWinner(matchID: MatchID("r32-\(source.1)"))
                 )
             )
         }
 
-        for index in 1...4 {
+        let quarterfinalSources = [(1, 2), (5, 6), (3, 4), (7, 8)]
+        for (index, source) in quarterfinalSources.enumerated() {
+            let matchIndex = index + 1
             slots.append(
                 KnockoutSlot(
-                    id: "qf-\(index)-home",
+                    id: "qf-\(matchIndex)-home",
                     round: .quarterfinal,
-                    matchID: MatchID("qf-\(index)"),
+                    matchID: MatchID("qf-\(matchIndex)"),
                     side: .home,
-                    source: .matchWinner(matchID: MatchID("r16-\((index * 2) - 1)"))
+                    source: .matchWinner(matchID: MatchID("r16-\(source.0)"))
+                )
+            )
+            slots.append(
+                KnockoutSlot(
+                    id: "qf-\(matchIndex)-away",
+                    round: .quarterfinal,
+                    matchID: MatchID("qf-\(matchIndex)"),
+                    side: .away,
+                    source: .matchWinner(matchID: MatchID("r16-\(source.1)"))
                 )
             )
         }
 
-        for index in 1...2 {
+        let semifinalSources = [(1, 2), (3, 4)]
+        for (index, source) in semifinalSources.enumerated() {
+            let matchIndex = index + 1
             slots.append(
                 KnockoutSlot(
-                    id: "sf-\(index)-home",
+                    id: "sf-\(matchIndex)-home",
                     round: .semifinal,
-                    matchID: MatchID("sf-\(index)"),
+                    matchID: MatchID("sf-\(matchIndex)"),
                     side: .home,
-                    source: .matchWinner(matchID: MatchID("qf-\((index * 2) - 1)"))
+                    source: .matchWinner(matchID: MatchID("qf-\(source.0)"))
+                )
+            )
+            slots.append(
+                KnockoutSlot(
+                    id: "sf-\(matchIndex)-away",
+                    round: .semifinal,
+                    matchID: MatchID("sf-\(matchIndex)"),
+                    side: .away,
+                    source: .matchWinner(matchID: MatchID("qf-\(source.1)"))
                 )
             )
         }
 
         slots.append(
             KnockoutSlot(id: "final-home", round: .final, matchID: "final", side: .home, source: .matchWinner(matchID: "sf-1"))
+        )
+        slots.append(
+            KnockoutSlot(id: "final-away", round: .final, matchID: "final", side: .away, source: .matchWinner(matchID: "sf-2"))
         )
 
         return slots
@@ -1855,5 +2035,18 @@ enum TournamentFixtures {
             + [UnicodeScalar(0xE007F)!]
 
         return String(String.UnicodeScalarView(scalars))
+    }
+}
+
+private extension Array {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
+private extension Sequence where Element: Hashable {
+    func uniqued() -> [Element] {
+        var seen: Set<Element> = []
+        return filter { seen.insert($0).inserted }
     }
 }
